@@ -7,7 +7,7 @@ import { availableArtifacts, canReissue, canRetry, describeState, KNOWN_STATES }
 
 /** Los valores del enum DocumentState, leídos del contrato tal como está escrito. */
 function contractStates(): string[] {
-  const contract = readFileSync(path.resolve(__dirname, "../../../contracts/openapi.yaml"), "utf8");
+  const contract = readFileSync(path.resolve(__dirname, "../../contracts/openapi.yaml"), "utf8");
   const section = contract.slice(contract.indexOf("    DocumentState:"));
   const match = /enum: \[([^\]]+)\]/.exec(section);
   if (!match?.[1]) {
