@@ -255,6 +255,48 @@ describe("Integraciones", () => {
     await waitFor(() => expect(api.to("GET", `/webhooks/subscriptions/${ERP.id}/deliveries`)).toHaveLength(2));
   });
 
+  it("sends a test notification to an active address and opens its history", async () => {
+    const TEST = { ...SENT, id: "66666666-6666-4666-8666-666666666666", eventType: "webhook.test", documentId: null, status: "PENDING", attemptCount: 0, sentAt: null };
+    const api = integrations({
+      "POST /webhooks/subscriptions/:id/test": () => json(202, TEST),
+      "GET /webhooks/subscriptions/:id/deliveries": () => json(200, { items: [TEST], page: 0, size: 20, total: 1 }),
+    });
+    renderWithTenant(<IntegracionesPage />);
+    await screen.findByRole("table", { name: "Direcciones registradas" });
+    // Una dirección apagada no se prueba.
+    expect(screen.queryByRole("button", { name: `Enviar aviso de prueba a ${BROKEN.url}` })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: `Enviar aviso de prueba a ${ERP.url}` }));
+
+    await waitFor(() => expect(api.to("POST", `/webhooks/subscriptions/${ERP.id}/test`)).toHaveLength(1));
+    expect(await screen.findByText(/Aviso de prueba en camino/)).toBeInTheDocument();
+    const history = await screen.findByRole("table", { name: /Avisos enviados a/ });
+    const row = within(history).getByText("Aviso de prueba").closest("tr") as HTMLElement;
+    expect(within(row).getByText("Pendiente")).toBeInTheDocument();
+    // No hay comprobante al que ir, ni se reintenta: se envía otro.
+    expect(within(row).queryByRole("link", { name: /Ver comprobante/ })).not.toBeInTheDocument();
+  });
+
+  it("does not offer to retry a failed test notification, and explains when one is already on its way", async () => {
+    const TEST = { ...FAILED, id: "77777777-7777-4777-8777-777777777777", eventType: "webhook.test", documentId: null, attemptCount: 1 };
+    integrations({
+      "POST /webhooks/subscriptions/:id/test": () => problem(409, "WEBHOOK_TEST_PENDING"),
+      "GET /webhooks/subscriptions/:id/deliveries": () => json(200, { items: [TEST], page: 0, size: 20, total: 1 }),
+    });
+    renderWithTenant(<IntegracionesPage />);
+    await screen.findByRole("table", { name: "Direcciones registradas" });
+
+    await userEvent.click(screen.getByRole("button", { name: `Ver avisos de ${ERP.url}` }));
+    const history = await screen.findByRole("table", { name: /Avisos enviados a/ });
+    const row = within(history).getByText("Aviso de prueba").closest("tr") as HTMLElement;
+    expect(within(row).getByText("Falló")).toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: /Reintentar/ })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: `Enviar aviso de prueba a ${ERP.url}` }));
+
+    expect(await screen.findByText(/Ya hay un aviso de prueba en camino/)).toBeInTheDocument();
+  });
+
   it("explains how to check that a notification is genuine", async () => {
     integrations();
     renderWithTenant(<IntegracionesPage />);
