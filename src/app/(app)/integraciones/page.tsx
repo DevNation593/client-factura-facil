@@ -132,13 +132,18 @@ function Integrations() {
     });
   }
 
+  /** Abre el historial de la dirección; si ya estaba abierto, lo vuelve a leer: pudo llegar algo nuevo. */
+  function showHistory(id: string) {
+    setHistoryOf(id);
+    setHistoryVersion((version) => version + 1);
+  }
+
   /** Un aviso de prueba sale en unos instantes; su resultado se ve en el historial, que se abre. */
   function sendTest(subscription: Subscription) {
     void run(async () => {
       await unwrap(api.POST("/webhooks/subscriptions/{id}/test", { params: { path: { id: subscription.id } } }));
       setTestSent(`Aviso de prueba en camino a ${subscription.url}. Su resultado aparece en el historial en unos segundos.`);
-      setHistoryOf(subscription.id);
-      setHistoryVersion((version) => version + 1);
+      showHistory(subscription.id);
     });
   }
 
@@ -203,7 +208,7 @@ function Integrations() {
                   </td>
                   <td>
                     <p className="actions">
-                      <button type="button" className="btn-link" onClick={() => setHistoryOf(subscription.id)}>
+                      <button type="button" className="btn-link" onClick={() => showHistory(subscription.id)}>
                         Ver avisos <span className="sr-only">de {subscription.url}</span>
                       </button>
                       {subscription.status === "ACTIVE" ? (

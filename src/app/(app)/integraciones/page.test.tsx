@@ -297,6 +297,21 @@ describe("Integraciones", () => {
     expect(await screen.findByText(/Ya hay un aviso de prueba en camino/)).toBeInTheDocument();
   });
 
+  it("reads the history again when it is asked for while open", async () => {
+    const api = integrations({
+      "GET /webhooks/subscriptions/:id/deliveries": () => json(200, { items: [SENT], page: 0, size: 20, total: 1 }),
+    });
+    renderWithTenant(<IntegracionesPage />);
+    await screen.findByRole("table", { name: "Direcciones registradas" });
+    const show = screen.getByRole("button", { name: `Ver avisos de ${ERP.url}` });
+
+    await userEvent.click(show);
+    await screen.findByRole("table", { name: /Avisos enviados a/ });
+    await userEvent.click(show);
+
+    await waitFor(() => expect(api.to("GET", `/webhooks/subscriptions/${ERP.id}/deliveries`)).toHaveLength(2));
+  });
+
   it("explains how to check that a notification is genuine", async () => {
     integrations();
     renderWithTenant(<IntegracionesPage />);
