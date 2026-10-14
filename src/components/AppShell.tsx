@@ -74,7 +74,6 @@ function Rail({ userName }: { userName: string | null }) {
         <span className="rail-group">Configuración</span>
         <NavLink href="/configuracion/emisor">Emisor</NavLink>
         <NavLink href="/configuracion/certificado">Certificado</NavLink>
-        {canWrite(active) ? <NavLink href="/equipo">Equipo</NavLink> : null}
         {canWrite(active) ? <NavLink href="/integraciones">Integraciones</NavLink> : null}
         <NavLink href="/empresas">Empresas</NavLink>
       </nav>

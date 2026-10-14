@@ -23,7 +23,7 @@ La API, el contrato, la infraestructura, la documentación y las pruebas con nav
 | `src/server/` | Configuración, sesión cifrada, llamadas a las cuentas de la API y reglas del proxy. Solo código de servidor. |
 | `src/app/auth/`, `src/app/api/` | Ingreso, registro, confirmación del correo, recuperación de contraseña y salida; estado de la sesión y el proxy de la API. |
 | `src/app/ingresar`, `registro`, `verificar-correo`, `olvide-contrasena`, `restablecer-contrasena` | Pantallas sin sesión. |
-| `src/app/(app)/` | Las pantallas, que exigen sesión: comprobantes, facturas, clientes, productos, configuración, equipo y la cuenta. |
+| `src/app/(app)/` | Las pantallas, que exigen sesión: comprobantes, facturas, clientes, productos, configuración, integraciones y la cuenta. |
 | `src/api/` | Cliente tipado de la API y traducción de sus errores a mensajes para el usuario. |
 | `src/lib/` | Aritmética decimal, vista previa de la factura, borradores, estados del comprobante, empresa activa. |
 | `src/components/` | Marco de la aplicación y piezas de formulario. |
@@ -62,7 +62,7 @@ Para arrancar todo en local (infraestructura, API y esta aplicación), ver [docs
 - **Solo se ha visto en Chromium**, en escritorio y en el ancho de un teléfono (375 px), donde ninguna pantalla principal se desplaza de lado; las tablas anchas se desplazan dentro de su caja. Lo que la revisión de las pantallas encontró y cómo quedó está en el [doc 15](https://github.com/DevNation593/api-emite-facil/blob/dev/docs/15-produccion.md).
 - **Una sola forma de pago por factura** en el editor. Los productos, como los clientes, se buscan: la lista de cada línea muestra los 20 primeros resultados.
 - **"Integraciones"** (propietario y administradores) registra las direcciones a las que avisar de lo que pasa con los comprobantes, muestra su secreto una sola vez y enseña los 20 avisos más recientes de cada una, sin paginar los anteriores. Si la instalación tiene los avisos apagados, registrar una dirección responde con un mensaje que lo dice.
-- **No hay invitaciones:** cada usuario trabaja en las empresas que crea. "Equipo" muestra a los miembros y permite cambiar su rol o retirarlos.
+- **No hay equipo ni invitaciones:** cada usuario trabaja en las empresas que crea, como propietario.
 - **La IP del usuario sale de `X-Forwarded-For`.** La API limita los intentos de ingreso por IP con la que la web le pasa; sin un proxy de entrada que fije esa cabecera, la pone el propio navegador y el límite por IP no sirve (el bloqueo por correo sí).
 - **Los borradores quedan en el navegador al cerrar sesión.** En un equipo compartido, otra persona de la misma empresa que use el mismo perfil del navegador los vería.
 - **Una sola instancia a efectos de renovación de sesión.** Las peticiones simultáneas comparten una renovación del token dentro de un mismo proceso; con varias instancias, la API vería dos veces el mismo token de renovación y cerraría la sesión: hace falta afinidad de sesión o un almacén compartido.
