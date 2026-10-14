@@ -206,57 +206,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Miembros de la empresa activa, el más antiguo primero. Requiere rol OWNER o ADMIN. */
-        get: operations["listMembers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/members/{userId}/role": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Cambia el rol de un miembro. Solo el OWNER; su propio rol no se cambia. */
-        put: operations["changeMemberRole"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/members/{userId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Retira a un miembro de la empresa; pierde el acceso en su siguiente petición. El OWNER retira a cualquiera salvo a sí mismo; un ADMIN, solo a BILLER y AUDITOR (si no, 403 ROLE_NOT_GRANTABLE). */
-        delete: operations["removeMember"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/taxpayers": {
         parameters: {
             query?: never;
@@ -805,7 +754,7 @@ export interface components {
             detail?: string;
             instance?: string;
             /** @enum {string} */
-            errorCode: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_REQUIRED" | "TENANT_HEADER_INVALID" | "TENANT_FORBIDDEN" | "ROLE_FORBIDDEN" | "NOT_FOUND" | "VALIDATION_FAILED" | "MALFORMED_REQUEST" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "REQUEST_REJECTED" | "RUC_ALREADY_REGISTERED" | "ESTABLISHMENT_CODE_TAKEN" | "EMISSION_POINT_CODE_TAKEN" | "IDENTIFICATION_TYPE_UNKNOWN" | "IDENTIFICATION_INVALID" | "CUSTOMER_ALREADY_EXISTS" | "TAX_RATE_UNKNOWN" | "PRODUCT_SKU_TAKEN" | "SEQUENCE_ALREADY_USED" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_INVALID" | "IDEMPOTENCY_KEY_REUSED" | "UNSUPPORTED_CURRENCY" | "INVALID_ISSUE_DATE" | "EMISSION_POINT_DISABLED" | "INVALID_LINE" | "AMOUNT_TOO_LARGE" | "INVALID_PAYMENT" | "CERTIFICATE_UNREADABLE" | "CERTIFICATE_NO_PRIVATE_KEY" | "CERTIFICATE_AMBIGUOUS" | "CERTIFICATE_EXPIRED" | "CERTIFICATE_NOT_YET_VALID" | "CERTIFICATE_KEY_UNSUPPORTED" | "CERTIFICATE_KEY_MISMATCH" | "DOCUMENT_NOT_RETRYABLE" | "DOCUMENT_NOT_AUTHORIZED" | "DELIVERY_DISABLED" | "DELIVERY_LIMIT_REACHED" | "DELIVERY_RECIPIENT_MISSING" | "RIMPE_REGIME_UNSUPPORTED" | "PRODUCTION_NOT_ENABLED" | "RATE_LIMITED" | "REPLACED_DOCUMENT_NOT_REJECTED" | "WEBHOOKS_DISABLED" | "WEBHOOK_URL_NOT_ALLOWED" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_DELIVERY_NOT_RETRYABLE" | "WEBHOOK_SUBSCRIPTION_DISABLED" | "REPLACED_DOCUMENT_OTHER_ISSUER" | "DOCUMENT_ALREADY_REPLACED" | "INVALID_CREDENTIALS" | "ACCOUNT_LOCKED" | "INVALID_REFRESH_TOKEN" | "INVALID_LINK" | "WEAK_PASSWORD" | "INVALID_CURRENT_PASSWORD" | "ROLE_NOT_GRANTABLE" | "OWNER_PROTECTED" | "PRODUCTION_REQUIREMENTS_NOT_MET" | "PAYMENT_METHOD_UNKNOWN" | "PAYMENTS_MISMATCH" | "FINAL_CONSUMER_LIMIT_EXCEEDED" | "SEQUENCE_EXHAUSTED" | "INTERNAL_ERROR";
+            errorCode: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_REQUIRED" | "TENANT_HEADER_INVALID" | "TENANT_FORBIDDEN" | "ROLE_FORBIDDEN" | "NOT_FOUND" | "VALIDATION_FAILED" | "MALFORMED_REQUEST" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "REQUEST_REJECTED" | "RUC_ALREADY_REGISTERED" | "ESTABLISHMENT_CODE_TAKEN" | "EMISSION_POINT_CODE_TAKEN" | "IDENTIFICATION_TYPE_UNKNOWN" | "IDENTIFICATION_INVALID" | "CUSTOMER_ALREADY_EXISTS" | "TAX_RATE_UNKNOWN" | "PRODUCT_SKU_TAKEN" | "SEQUENCE_ALREADY_USED" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_INVALID" | "IDEMPOTENCY_KEY_REUSED" | "UNSUPPORTED_CURRENCY" | "INVALID_ISSUE_DATE" | "EMISSION_POINT_DISABLED" | "INVALID_LINE" | "AMOUNT_TOO_LARGE" | "INVALID_PAYMENT" | "CERTIFICATE_UNREADABLE" | "CERTIFICATE_NO_PRIVATE_KEY" | "CERTIFICATE_AMBIGUOUS" | "CERTIFICATE_EXPIRED" | "CERTIFICATE_NOT_YET_VALID" | "CERTIFICATE_KEY_UNSUPPORTED" | "CERTIFICATE_KEY_MISMATCH" | "DOCUMENT_NOT_RETRYABLE" | "DOCUMENT_NOT_AUTHORIZED" | "DELIVERY_DISABLED" | "DELIVERY_LIMIT_REACHED" | "DELIVERY_RECIPIENT_MISSING" | "RIMPE_REGIME_UNSUPPORTED" | "PRODUCTION_NOT_ENABLED" | "RATE_LIMITED" | "REPLACED_DOCUMENT_NOT_REJECTED" | "WEBHOOKS_DISABLED" | "WEBHOOK_URL_NOT_ALLOWED" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_DELIVERY_NOT_RETRYABLE" | "WEBHOOK_SUBSCRIPTION_DISABLED" | "REPLACED_DOCUMENT_OTHER_ISSUER" | "DOCUMENT_ALREADY_REPLACED" | "INVALID_CREDENTIALS" | "ACCOUNT_LOCKED" | "INVALID_REFRESH_TOKEN" | "INVALID_LINK" | "WEAK_PASSWORD" | "INVALID_CURRENT_PASSWORD" | "PRODUCTION_REQUIREMENTS_NOT_MET" | "PAYMENT_METHOD_UNKNOWN" | "PAYMENTS_MISMATCH" | "FINAL_CONSUMER_LIMIT_EXCEEDED" | "SEQUENCE_EXHAUSTED" | "INTERNAL_ERROR";
             correlationId: string;
             /** @description Con VALIDATION_FAILED, WEAK_PASSWORD e INVALID_CURRENT_PASSWORD. */
             errors?: {
@@ -1120,17 +1069,6 @@ export interface components {
             /** @enum {string} */
             status: "ACTIVE" | "SUSPENDED";
             role: components["schemas"]["Role"];
-        };
-        Member: {
-            /** Format: uuid */
-            userId: string;
-            /** @description Correo con el que el proveedor de identidad conoce a la persona, si lo informa. */
-            email?: string | null;
-            role: components["schemas"]["Role"];
-            /** Format: date-time */
-            since: string;
-            /** @description Si es quien hace la consulta. */
-            self: boolean;
         };
         /**
          * @description document.received: el SRI recibió el comprobante. document.authorized: lo autorizó. document.rejected: lo devolvió o no lo autorizó (el campo state del aviso dice cuál). document.delivered: salió un correo de entrega al cliente.
@@ -1728,112 +1666,6 @@ export interface operations {
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
-        };
-    };
-    listMembers: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
-                "X-Tenant-Id"?: components["parameters"]["TenantId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Miembros. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Member"][];
-                };
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-        };
-    };
-    changeMemberRole: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
-                "X-Tenant-Id"?: components["parameters"]["TenantId"];
-            };
-            path: {
-                userId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    role: components["schemas"]["Role"];
-                };
-            };
-        };
-        responses: {
-            /** @description Miembro con su nuevo rol. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Member"];
-                };
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-            404: components["responses"]["Problem"];
-            /** @description errorCode OWNER_PROTECTED, el propietario no cambia de rol. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    removeMember: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
-                "X-Tenant-Id"?: components["parameters"]["TenantId"];
-            };
-            path: {
-                userId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Retirado. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-            404: components["responses"]["Problem"];
-            /** @description errorCode OWNER_PROTECTED, el propietario no se retira. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
         };
     };
     listTaxpayers: {

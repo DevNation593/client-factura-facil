@@ -62,8 +62,6 @@ const MESSAGES: Record<string, string> = {
   REPLACED_DOCUMENT_NOT_REJECTED: "Solo se puede reemplazar un comprobante que el SRI devolvió o no autorizó, o cuyo XML no se pudo generar.",
   REPLACED_DOCUMENT_OTHER_ISSUER: "El comprobante que se reemplaza es de otro emisor. Emita la factura nueva con el mismo emisor.",
   DOCUMENT_ALREADY_REPLACED: "Ese comprobante ya fue reemplazado por otra factura. Revise los comprobantes.",
-  ROLE_NOT_GRANTABLE: "Su rol no permite conceder ni retirar ese rol.",
-  OWNER_PROTECTED: "El propietario de la empresa no se puede retirar ni cambiar de rol.",
   WEBHOOKS_DISABLED: "Los avisos a otros sistemas no están habilitados en esta instalación. Pídalo a quien la administra.",
   WEBHOOK_LIMIT_REACHED: "La empresa ya tiene el máximo de direcciones registradas. Borre alguna antes de registrar otra.",
   WEBHOOK_DELIVERY_NOT_RETRYABLE: "Solo se puede reintentar un aviso que falló; este está pendiente o ya se entregó.",
