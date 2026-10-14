@@ -23,9 +23,8 @@ function Rail({ userName }: { userName: string | null }) {
   const [leaving, setLeaving] = useState(false);
 
   /**
-   * Cierra la sesión aquí y después sale hacia donde indique el servidor (el cierre de sesión del
-   * proveedor de identidad). Es una petición y luego una navegación, no un formulario: la política
-   * de seguridad de la página no deja que un formulario acabe en otro sitio.
+   * Cierra la sesión (en la API y en las cookies) y después vuelve a la pantalla de ingreso con una
+   * navegación completa, para que no quede nada de la sesión cargado en la página.
    */
   async function signOut() {
     if (leaving) {
@@ -81,6 +80,7 @@ function Rail({ userName }: { userName: string | null }) {
       </nav>
       <div className="rail-user">
         {userName ? <div>{userName}</div> : null}
+        <NavLink href="/cuenta">Mi cuenta</NavLink>
         <button type="button" onClick={signOut} disabled={leaving}>
           Cerrar sesión
         </button>

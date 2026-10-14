@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { json, problem, stubApi } from "@/test/api";
+import { json, stubApi } from "@/test/api";
 import { renderWithTenant } from "@/test/render";
 
 import EquipoPage from "./page";
@@ -10,7 +10,6 @@ import EquipoPage from "./page";
 const OWNER = { userId: "11111111-1111-4111-8111-111111111111", email: "dueno@example.test", role: "OWNER", since: "2026-09-01T15:00:00Z", self: true };
 const ADMIN = { userId: "22222222-2222-4222-8222-222222222222", email: "admin@example.test", role: "ADMIN", since: "2026-09-02T15:00:00Z", self: false };
 const BILLER = { userId: "33333333-3333-4333-8333-333333333333", email: "caja@example.test", role: "BILLER", since: "2026-09-03T15:00:00Z", self: false };
-const PENDING = { id: "44444444-4444-4444-8444-444444444444", email: "nueva@example.test", role: "AUDITOR", expiresAt: "2026-10-22T15:00:00Z", invitedBy: "dueno@example.test" };
 
 const NO_CONTENT = () => new Response(null, { status: 204 });
 
@@ -19,13 +18,12 @@ type Routes = Parameters<typeof stubApi>[0];
 function team(extra: Routes = {}, members: unknown[] = [OWNER, ADMIN, BILLER]) {
   return stubApi({
     "GET /members": () => json(200, members),
-    "GET /invitations": () => json(200, [PENDING]),
     ...extra,
   });
 }
 
 describe("Equipo", () => {
-  it("shows who is in the company, with their role, and who has been invited", async () => {
+  it("shows who is in the company, with their role", async () => {
     team();
     renderWithTenant(<EquipoPage />);
 
@@ -36,50 +34,8 @@ describe("Equipo", () => {
     expect(within(members).getByLabelText("Rol de admin@example.test")).toHaveValue("ADMIN");
     // Ni el propietario ni uno mismo se cambian de rol.
     expect(within(members).queryByLabelText("Rol de dueno@example.test")).not.toBeInTheDocument();
-
-    const pending = screen.getByRole("table", { name: "Invitaciones pendientes" });
-    expect(within(pending).getByText("nueva@example.test")).toBeInTheDocument();
-    expect(within(pending).getByText("Auditor")).toBeInTheDocument();
-  });
-
-  it("invites someone and shows the link once, to copy and share", async () => {
-    const writeText = vi.fn(async () => {});
-    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
-    const api = team({
-      "POST /invitations": () =>
-        json(201, { id: "55555555-5555-4555-8555-555555555555", email: "ana@example.test", role: "BILLER", expiresAt: "2026-10-22T15:00:00Z", token: "codigo-secreto-de-un-solo-uso" }),
-    });
-    renderWithTenant(<EquipoPage />);
-    await screen.findByRole("table", { name: "Miembros" });
-
-    await userEvent.type(screen.getByLabelText("Correo de la persona"), " ana@example.test ");
-    await userEvent.selectOptions(screen.getByLabelText("Rol que tendrá"), "BILLER");
-    await userEvent.click(screen.getByRole("button", { name: "Invitar" }));
-
-    const link = await screen.findByLabelText("Enlace de invitación");
-    expect(link).toHaveValue("http://localhost:3000/invitacion?codigo=codigo-secreto-de-un-solo-uso");
-    expect(link).toHaveAttribute("readonly");
-    expect(screen.getByText(/no se volverá a mostrar/)).toBeInTheDocument();
-    expect(screen.getByText(/solo sirve para ana@example.test/)).toBeInTheDocument();
-    expect(api.to("POST", "/invitations")[0]?.body).toEqual({ email: "ana@example.test", role: "BILLER" });
-
-    await userEvent.click(screen.getByRole("button", { name: "Copiar enlace" }));
-    expect(writeText).toHaveBeenCalledWith("http://localhost:3000/invitacion?codigo=codigo-secreto-de-un-solo-uso");
-    expect(await screen.findByText("Enlace copiado.")).toBeInTheDocument();
-    // Las pendientes se vuelven a leer.
-    await waitFor(() => expect(api.to("GET", "/invitations").length).toBeGreaterThan(1));
-  });
-
-  it("explains why an invitation could not be created", async () => {
-    team({ "POST /invitations": () => problem(409, "ALREADY_MEMBER") });
-    renderWithTenant(<EquipoPage />);
-    await screen.findByRole("table", { name: "Miembros" });
-
-    await userEvent.type(screen.getByLabelText("Correo de la persona"), "caja@example.test");
-    await userEvent.click(screen.getByRole("button", { name: "Invitar" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("Esa persona ya forma parte de la empresa.");
-    expect(screen.queryByLabelText("Enlace de invitación")).not.toBeInTheDocument();
+    // Ya no se invita a nadie: cada usuario trabaja en las empresas que crea.
+    expect(screen.queryByText(/Invitar/)).not.toBeInTheDocument();
   });
 
   it("changes a role only after the owner confirms", async () => {
@@ -98,9 +54,9 @@ describe("Equipo", () => {
     expect(api.to("PUT", `/members/${BILLER.userId}/role`)[0]?.body).toEqual({ role: "AUDITOR" });
   });
 
-  it("removes a member and revokes an invitation, each after confirming", async () => {
+  it("removes a member after confirming", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const api = team({ "DELETE /members/:id": NO_CONTENT, "DELETE /invitations/:id": NO_CONTENT });
+    const api = team({ "DELETE /members/:id": NO_CONTENT });
     renderWithTenant(<EquipoPage />);
     await screen.findByRole("table", { name: "Miembros" });
 
@@ -109,8 +65,6 @@ describe("Equipo", () => {
     // Al propietario no se le ofrece retirarse.
     expect(screen.queryByRole("button", { name: "Retirar a dueno@example.test" })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Anular la invitación de nueva@example.test" }));
-    await waitFor(() => expect(api.to("DELETE", `/invitations/${PENDING.id}`)).toHaveLength(1));
   });
 
   it("does nothing when the user does not confirm removing someone", async () => {
@@ -134,8 +88,6 @@ describe("Equipo", () => {
     expect(screen.getByRole("button", { name: "Retirar a caja@example.test" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retirar a otra-admin@example.test" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retirar a admin@example.test" })).not.toBeInTheDocument();
-    const options = within(screen.getByLabelText("Rol que tendrá")).getAllByRole("option").map((option) => option.textContent);
-    expect(options).toEqual(["Facturador", "Auditor"]);
   });
 
   it("is not for roles that do not manage the company", () => {

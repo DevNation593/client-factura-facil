@@ -1,12 +1,9 @@
 import { cookies } from "next/headers";
 
+import { refreshSession } from "./authApi";
 import type { ServerConfig } from "./config";
 import { logEvent } from "./log";
-import { refreshSession } from "./oidc";
-import { MAX_SESSION_AGE_MS, open, openSession, readChunks, seal, sealSession, SESSION_COOKIE, type Session } from "./session";
-
-/** Cookie cifrada, de diez minutos, con los datos del inicio de sesión en curso. */
-const LOGIN_COOKIE = "einvoice_login";
+import { MAX_SESSION_AGE_MS, openSession, readChunks, sealSession, SESSION_COOKIE, type Session } from "./session";
 
 /** Empresa activa: no es un secreto, pero tampoco hace falta que la página la lea por JavaScript ajeno. */
 export const TENANT_COOKIE = "einvoice_tenant";
@@ -60,7 +57,7 @@ export async function clearSession(): Promise<void> {
 
 /**
  * Sesión lista para llamar a la API: si el token está por caducar lo renueva y guarda la sesión
- * nueva. Nula si no hay sesión o el proveedor ya no la renueva; `unavailable` si el token caducó y
+ * nueva. Nula si no hay sesión o la API ya no la renueva; `unavailable` si el token caducó y
  * ahora mismo no se puede renovar (la sesión se conserva). Solo para manejadores de ruta.
  */
 export async function usableSession(config: ServerConfig): Promise<Session | null | "unavailable"> {
@@ -81,27 +78,11 @@ export async function usableSession(config: ServerConfig): Promise<Session | nul
     await clearSession();
     return null;
   }
-  // El proveedor no respondió. Mientras el token siga vigente se usa; después, se espera.
+  // La API no respondió. Mientras el token siga vigente se usa; después, se espera.
   const stillValid = session.expiresAt > Date.now();
   // El nombre del campo no lleva "token": el registro descarta todo campo que lo parezca.
   logEvent("warn", "session.refresh.unavailable", { accessStillValid: stillValid });
   return stillValid ? session : "unavailable";
-}
-
-export async function storePendingLogin(pending: unknown, config: ServerConfig): Promise<void> {
-  writeChunks(await cookies(), LOGIN_COOKIE, await seal(pending, config.sessionSecret), config, 600);
-}
-
-/** Lee y borra los datos del inicio de sesión en curso: solo valen una vez. */
-export async function takePendingLogin(config: ServerConfig): Promise<unknown | null> {
-  const jar = await cookies();
-  const chunks = readChunks(LOGIN_COOKIE, (name) => jar.get(name)?.value);
-  for (let index = 0; index < MAX_CHUNKS; index++) {
-    if (jar.get(`${LOGIN_COOKIE}.${index}`)) {
-      jar.delete(`${LOGIN_COOKIE}.${index}`);
-    }
-  }
-  return open(chunks, config.sessionSecret);
 }
 
 export async function activeTenant(): Promise<string | null> {

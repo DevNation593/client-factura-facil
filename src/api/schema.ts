@@ -1,6 +1,176 @@
 // Generado desde contracts/openapi.yaml con `npm run api:generate`. No editar a mano.
 
 export interface paths {
+    "/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crea una cuenta y envía al correo un enlace para confirmarlo. La respuesta es la misma si el correo ya tiene cuenta: entonces no cambia nada y al correo le llega un aviso con un enlace para cambiar la contraseña. */
+        post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abre una sesión con correo y contraseña. */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Entrega un token de acceso nuevo y cambia el de renovación. Presentar un token de renovación ya usado cierra la sesión entera. */
+        post: operations["refreshSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cierra la sesión de ese token de renovación. Sin efecto si ya estaba cerrada. */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/email-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirma el correo con el código del enlace que se envió. */
+        post: operations["verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/email-verification/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vuelve a enviar el enlace para confirmar el correo, si falta confirmarlo. */
+        post: operations["resendEmailVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password-reset/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envía un enlace para elegir otra contraseña. La respuesta es la misma si el correo no tiene cuenta. */
+        post: operations["requestPasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pone la contraseña nueva con el código del enlace y cierra todas las sesiones de la cuenta. También deja el correo confirmado. */
+        post: operations["resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cambia la contraseña conociendo la actual y cierra las demás sesiones; esta sigue. */
+        post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** La cuenta de la sesión. */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tenants": {
         parameters: {
             query?: never;
@@ -82,75 +252,6 @@ export interface paths {
         post?: never;
         /** Retira a un miembro de la empresa; pierde el acceso en su siguiente petición. El OWNER retira a cualquiera salvo a sí mismo; un ADMIN, solo a BILLER y AUDITOR (si no, 403 ROLE_NOT_GRANTABLE). */
         delete: operations["removeMember"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/invitations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Invitaciones pendientes y vigentes de la empresa, sin su código. Requiere OWNER o ADMIN. */
-        get: operations["listInvitations"];
-        put?: never;
-        /** Invita a un correo a la empresa con un rol. Requiere OWNER o ADMIN, y nadie concede un rol igual o superior al suyo (403 ROLE_NOT_GRANTABLE). La respuesta trae el código de la invitación: es la única vez que se muestra. Invitar de nuevo al mismo correo anula la anterior (queda como revocada en la auditoría), salvo que quien invita no pudiera revocarla: entonces 403 ROLE_NOT_GRANTABLE y la anterior sigue en pie. */
-        post: operations["createInvitation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/invitations/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Anula una invitación pendiente; su enlace deja de valer. */
-        delete: operations["revokeInvitation"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/invitations/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Qué empresa y qué rol ofrece un código de invitación. Con sesión, sin empresa activa. Mismas respuestas de error que al aceptar. */
-        post: operations["previewInvitation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/invitations/accept": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Acepta una invitación: quien inició sesión pasa a ser miembro de esa empresa con el rol ofrecido. Su token debe traer el correo invitado. Con sesión, sin empresa activa. */
-        post: operations["acceptInvitation"];
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -667,6 +768,36 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Credentials: {
+            /** Format: email */
+            email: string;
+            password: string;
+        };
+        Tokens: {
+            /** @description Token de acceso; se envía en la cabecera Authorization: Bearer. */
+            accessToken: string;
+            /** @description Segundos de vigencia del token de acceso. */
+            expiresIn: number;
+            /** @description Token de renovación; cambia en cada uso. */
+            refreshToken: string;
+            /**
+             * Format: date-time
+             * @description Fin de la sesión; después hay que volver a ingresar.
+             */
+            refreshExpiresAt: string;
+        };
+        RefreshRequest: {
+            refreshToken: string;
+        };
+        LinkToken: {
+            token: string;
+        };
+        Me: {
+            /** Format: uuid */
+            id: string;
+            email: string;
+            emailVerified: boolean;
+        };
         Problem: {
             type?: string;
             title?: string;
@@ -674,9 +805,9 @@ export interface components {
             detail?: string;
             instance?: string;
             /** @enum {string} */
-            errorCode: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_REQUIRED" | "TENANT_HEADER_INVALID" | "TENANT_FORBIDDEN" | "ROLE_FORBIDDEN" | "NOT_FOUND" | "VALIDATION_FAILED" | "MALFORMED_REQUEST" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "REQUEST_REJECTED" | "RUC_ALREADY_REGISTERED" | "ESTABLISHMENT_CODE_TAKEN" | "EMISSION_POINT_CODE_TAKEN" | "IDENTIFICATION_TYPE_UNKNOWN" | "IDENTIFICATION_INVALID" | "CUSTOMER_ALREADY_EXISTS" | "TAX_RATE_UNKNOWN" | "PRODUCT_SKU_TAKEN" | "SEQUENCE_ALREADY_USED" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_INVALID" | "IDEMPOTENCY_KEY_REUSED" | "UNSUPPORTED_CURRENCY" | "INVALID_ISSUE_DATE" | "EMISSION_POINT_DISABLED" | "INVALID_LINE" | "AMOUNT_TOO_LARGE" | "INVALID_PAYMENT" | "CERTIFICATE_UNREADABLE" | "CERTIFICATE_NO_PRIVATE_KEY" | "CERTIFICATE_AMBIGUOUS" | "CERTIFICATE_EXPIRED" | "CERTIFICATE_NOT_YET_VALID" | "CERTIFICATE_KEY_UNSUPPORTED" | "CERTIFICATE_KEY_MISMATCH" | "DOCUMENT_NOT_RETRYABLE" | "DOCUMENT_NOT_AUTHORIZED" | "DELIVERY_DISABLED" | "DELIVERY_LIMIT_REACHED" | "DELIVERY_RECIPIENT_MISSING" | "RIMPE_REGIME_UNSUPPORTED" | "PRODUCTION_NOT_ENABLED" | "RATE_LIMITED" | "REPLACED_DOCUMENT_NOT_REJECTED" | "WEBHOOKS_DISABLED" | "WEBHOOK_URL_NOT_ALLOWED" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_DELIVERY_NOT_RETRYABLE" | "WEBHOOK_SUBSCRIPTION_DISABLED" | "REPLACED_DOCUMENT_OTHER_ISSUER" | "DOCUMENT_ALREADY_REPLACED" | "INVITATION_NOT_VALID" | "INVITATION_EMAIL_MISMATCH" | "EMAIL_NOT_VERIFIED" | "ALREADY_MEMBER" | "ROLE_NOT_GRANTABLE" | "OWNER_PROTECTED" | "INVITATION_LIMIT_REACHED" | "PRODUCTION_REQUIREMENTS_NOT_MET" | "PAYMENT_METHOD_UNKNOWN" | "PAYMENTS_MISMATCH" | "FINAL_CONSUMER_LIMIT_EXCEEDED" | "SEQUENCE_EXHAUSTED" | "INTERNAL_ERROR";
+            errorCode: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_REQUIRED" | "TENANT_HEADER_INVALID" | "TENANT_FORBIDDEN" | "ROLE_FORBIDDEN" | "NOT_FOUND" | "VALIDATION_FAILED" | "MALFORMED_REQUEST" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "REQUEST_REJECTED" | "RUC_ALREADY_REGISTERED" | "ESTABLISHMENT_CODE_TAKEN" | "EMISSION_POINT_CODE_TAKEN" | "IDENTIFICATION_TYPE_UNKNOWN" | "IDENTIFICATION_INVALID" | "CUSTOMER_ALREADY_EXISTS" | "TAX_RATE_UNKNOWN" | "PRODUCT_SKU_TAKEN" | "SEQUENCE_ALREADY_USED" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_INVALID" | "IDEMPOTENCY_KEY_REUSED" | "UNSUPPORTED_CURRENCY" | "INVALID_ISSUE_DATE" | "EMISSION_POINT_DISABLED" | "INVALID_LINE" | "AMOUNT_TOO_LARGE" | "INVALID_PAYMENT" | "CERTIFICATE_UNREADABLE" | "CERTIFICATE_NO_PRIVATE_KEY" | "CERTIFICATE_AMBIGUOUS" | "CERTIFICATE_EXPIRED" | "CERTIFICATE_NOT_YET_VALID" | "CERTIFICATE_KEY_UNSUPPORTED" | "CERTIFICATE_KEY_MISMATCH" | "DOCUMENT_NOT_RETRYABLE" | "DOCUMENT_NOT_AUTHORIZED" | "DELIVERY_DISABLED" | "DELIVERY_LIMIT_REACHED" | "DELIVERY_RECIPIENT_MISSING" | "RIMPE_REGIME_UNSUPPORTED" | "PRODUCTION_NOT_ENABLED" | "RATE_LIMITED" | "REPLACED_DOCUMENT_NOT_REJECTED" | "WEBHOOKS_DISABLED" | "WEBHOOK_URL_NOT_ALLOWED" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_DELIVERY_NOT_RETRYABLE" | "WEBHOOK_SUBSCRIPTION_DISABLED" | "REPLACED_DOCUMENT_OTHER_ISSUER" | "DOCUMENT_ALREADY_REPLACED" | "INVALID_CREDENTIALS" | "ACCOUNT_LOCKED" | "INVALID_REFRESH_TOKEN" | "INVALID_LINK" | "WEAK_PASSWORD" | "INVALID_CURRENT_PASSWORD" | "ROLE_NOT_GRANTABLE" | "OWNER_PROTECTED" | "PRODUCTION_REQUIREMENTS_NOT_MET" | "PAYMENT_METHOD_UNKNOWN" | "PAYMENTS_MISMATCH" | "FINAL_CONSUMER_LIMIT_EXCEEDED" | "SEQUENCE_EXHAUSTED" | "INTERNAL_ERROR";
             correlationId: string;
-            /** @description Solo con VALIDATION_FAILED. */
+            /** @description Con VALIDATION_FAILED, WEAK_PASSWORD e INVALID_CURRENT_PASSWORD. */
             errors?: {
                 field?: string;
                 message?: string;
@@ -1001,16 +1132,6 @@ export interface components {
             /** @description Si es quien hace la consulta. */
             self: boolean;
         };
-        Invitation: {
-            /** Format: uuid */
-            id: string;
-            email: string;
-            role: components["schemas"]["Role"];
-            /** Format: date-time */
-            expiresAt: string;
-            /** @description Correo de quien la creó. */
-            invitedBy?: string | null;
-        };
         /**
          * @description document.received: el SRI recibió el comprobante. document.authorized: lo autorizó. document.rejected: lo devolvió o no lo autorizó (el campo state del aviso dice cuál). document.delivered: salió un correo de entrega al cliente.
          * @enum {string}
@@ -1096,26 +1217,6 @@ export interface components {
             createdAt: string;
             /** @description Secreto de firma (whsec_...). No se vuelve a mostrar. */
             secret: string;
-        };
-        CreatedInvitation: {
-            /** Format: uuid */
-            id: string;
-            email: string;
-            role: components["schemas"]["Role"];
-            /** Format: date-time */
-            expiresAt: string;
-            /** @description Código de la invitación. Solo aparece aquí: el servidor guarda su huella, no el código. Quien invita lo comparte con la persona invitada. */
-            token: string;
-        };
-        InvitationToken: {
-            token: string;
-        };
-        InvitationPreview: {
-            tenantName: string;
-            role: components["schemas"]["Role"];
-            email: string;
-            /** Format: date-time */
-            expiresAt: string;
         };
         CreateTaxpayerRequest: {
             /** @description RUC del emisor, diez dígitos seguidos de 001 (lo exige el XSD del SRI). */
@@ -1246,6 +1347,316 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credentials"];
+            };
+        };
+        responses: {
+            /** @description Recibido; el correo dice cómo seguir. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            /** @description errorCode WEAK_PASSWORD (entre 12 y 128 caracteres, y no el propio correo). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credentials"];
+            };
+        };
+        responses: {
+            /** @description Sesión abierta. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tokens"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            /** @description errorCode INVALID_CREDENTIALS. Es igual si el correo no tiene cuenta o si la contraseña no es la suya. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description errorCode ACCOUNT_LOCKED (demasiados fallos seguidos con ese correo) o RATE_LIMITED (demasiadas peticiones desde esa dirección IP). Retry-After dice cuántos segundos esperar. */
+            429: {
+                headers: {
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    refreshSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Tokens nuevos de la misma sesión. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tokens"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            /** @description errorCode INVALID_REFRESH_TOKEN, la sesión caducó, se cerró o el token ya se usó. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Sesión cerrada. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+        };
+    };
+    verifyEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkToken"];
+            };
+        };
+        responses: {
+            /** @description Correo confirmado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description errorCode INVALID_LINK, el enlace no existe, ya se usó o caducó. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resendEmailVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recibido. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    requestPasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Recibido. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                    newPassword: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Contraseña cambiada. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description errorCode INVALID_LINK, el enlace no existe, ya se usó o caducó. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description errorCode WEAK_PASSWORD. El enlace sigue valiendo. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    currentPassword: string;
+                    newPassword: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Contraseña cambiada. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            /** @description errorCode INVALID_CURRENT_PASSWORD o WEAK_PASSWORD. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cuenta. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
     listTenants: {
         parameters: {
             query?: never;
@@ -1415,183 +1826,6 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             /** @description errorCode OWNER_PROTECTED, el propietario no se retira. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    listInvitations: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
-                "X-Tenant-Id"?: components["parameters"]["TenantId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Invitaciones pendientes. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Invitation"][];
-                };
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-        };
-    };
-    createInvitation: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
-                "X-Tenant-Id"?: components["parameters"]["TenantId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: email */
-                    email: string;
-                    role: components["schemas"]["Role"];
-                };
-            };
-        };
-        responses: {
-            /** @description Invitación creada. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreatedInvitation"];
-                };
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-            /** @description errorCode ALREADY_MEMBER (esa persona ya es miembro) o INVITATION_LIMIT_REACHED (la empresa tiene 50 invitaciones pendientes). */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-        };
-    };
-    revokeInvitation: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
-                "X-Tenant-Id"?: components["parameters"]["TenantId"];
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Anulada. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-            404: components["responses"]["Problem"];
-        };
-    };
-    previewInvitation: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InvitationToken"];
-            };
-        };
-        responses: {
-            /** @description Lo que ofrece la invitación. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvitationPreview"];
-                };
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            403: components["responses"]["Problem"];
-            404: components["responses"]["Problem"];
-        };
-    };
-    acceptInvitation: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InvitationToken"];
-            };
-        };
-        responses: {
-            /** @description Empresa a la que ahora pertenece, con su rol. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Tenant"];
-                };
-            };
-            400: components["responses"]["Problem"];
-            401: components["responses"]["Problem"];
-            /** @description errorCode INVITATION_EMAIL_MISMATCH (la invitación es para otro correo, o el token no informa del correo) o EMAIL_NOT_VERIFIED. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description errorCode INVITATION_NOT_VALID: el código no existe, caducó, se anuló o ya se usó. La respuesta no distingue cuál. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["Problem"];
-                };
-            };
-            /** @description errorCode ALREADY_MEMBER. */
             409: {
                 headers: {
                     [name: string]: unknown;
