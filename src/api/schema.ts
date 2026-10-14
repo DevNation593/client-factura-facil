@@ -629,6 +629,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/webhooks/subscriptions/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envía a la dirección un aviso de prueba (eventType webhook.test), firmado como los demás pero sin comprobante: su cuerpo lleva eventId, eventType, occurredAt, tenantId y subscriptionId. Sale por la cola de avisos en unos instantes y aparece en el historial. Se intenta una sola vez y no cuenta para apagar la suscripción. Mientras uno esté en camino no se admite otro. */
+        post: operations["testWebhookSubscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/subscriptions/{id}/secret": {
         parameters: {
             query?: never;
@@ -1028,6 +1045,11 @@ export interface components {
              */
             previousSecretExpiresAt?: string | null;
         };
+        /**
+         * @description Los eventos de las suscripciones, más webhook.test, el aviso de prueba.
+         * @enum {string}
+         */
+        WebhookDeliveryEventType: "document.received" | "document.authorized" | "document.rejected" | "document.delivered" | "webhook.test";
         WebhookDelivery: {
             /** Format: uuid */
             id: string;
@@ -1036,9 +1058,12 @@ export interface components {
              * @description El webhook-id con que viaja el aviso.
              */
             eventId: string;
-            eventType: components["schemas"]["WebhookEventType"];
-            /** Format: uuid */
-            documentId: string;
+            eventType: components["schemas"]["WebhookDeliveryEventType"];
+            /**
+             * Format: uuid
+             * @description Nulo en un aviso de prueba.
+             */
+            documentId: string | null;
             /** @enum {string} */
             status: "PENDING" | "SENDING" | "SENT" | "FAILED";
             attemptCount: number;
@@ -2738,6 +2763,44 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             /** @description errorCode WEBHOOK_DELIVERY_NOT_RETRYABLE (el aviso no está fallido), WEBHOOK_SUBSCRIPTION_DISABLED (su suscripción está desactivada) o WEBHOOKS_DISABLED. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    testWebhookSubscription: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                "X-Tenant-Id"?: components["parameters"]["TenantId"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Aviso de prueba anotado. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDelivery"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            /** @description WEBHOOKS_DISABLED (la instalación no envía avisos), WEBHOOK_SUBSCRIPTION_DISABLED (la suscripción está apagada) o WEBHOOK_TEST_PENDING (ya hay un aviso de prueba en camino). */
             409: {
                 headers: {
                     [name: string]: unknown;

@@ -11,6 +11,7 @@ import { ErrorNotice, Notice } from "@/components/Notice";
 import { formatInstant } from "@/lib/dates";
 import { canWrite, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
+import { usePolling } from "@/lib/usePolling";
 
 type Subscription = components["schemas"]["WebhookSubscription"];
 type EventType = components["schemas"]["WebhookEventType"];
@@ -33,7 +34,13 @@ const DELIVERY_STATUS: Record<Delivery["status"], { label: string; tone: string 
 
 const HISTORY_SIZE = 20;
 
+/** El aviso de prueba: no anuncia ningún comprobante y no se reintenta (se envía otro). */
+const TEST_EVENT = "webhook.test";
+
 function eventLabel(type: string): string {
+  if (type === TEST_EVENT) {
+    return "Aviso de prueba";
+  }
   return EVENTS.find((event) => event.type === type)?.label ?? type;
 }
 
@@ -60,6 +67,9 @@ function Integrations() {
   const [busy, setBusy] = useState(false);
   const [revealed, setRevealed] = useState<Revealed | undefined>(undefined);
   const [historyOf, setHistoryOf] = useState<string | undefined>(undefined);
+  // Cambia con cada aviso de prueba: el historial abierto se vuelve a leer para mostrarlo.
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const [testSent, setTestSent] = useState<string | undefined>(undefined);
 
   /** Una operación sobre una dirección: sin dobles envíos, con su error a la vista y la lista releída. */
   async function run(action: () => Promise<unknown>) {
@@ -68,6 +78,7 @@ function Integrations() {
     }
     setBusy(true);
     setError(undefined);
+    setTestSent(undefined);
     try {
       await action();
       await subscriptions.reload({ quiet: true });
@@ -121,6 +132,21 @@ function Integrations() {
     });
   }
 
+  /** Abre el historial de la dirección; si ya estaba abierto, lo vuelve a leer: pudo llegar algo nuevo. */
+  function showHistory(id: string) {
+    setHistoryOf(id);
+    setHistoryVersion((version) => version + 1);
+  }
+
+  /** Un aviso de prueba sale en unos instantes; su resultado se ve en el historial, que se abre. */
+  function sendTest(subscription: Subscription) {
+    void run(async () => {
+      await unwrap(api.POST("/webhooks/subscriptions/{id}/test", { params: { path: { id: subscription.id } } }));
+      setTestSent(`Aviso de prueba en camino a ${subscription.url}. Su resultado aparece en el historial en unos segundos.`);
+      showHistory(subscription.id);
+    });
+  }
+
   function remove(subscription: Subscription) {
     if (!window.confirm(`¿Borrar ${subscription.url}? Dejará de recibir avisos y se borrará su historial.`)) {
       return;
@@ -144,6 +170,7 @@ function Integrations() {
       </p>
       <ErrorNotice error={subscriptions.error} />
       <ErrorNotice error={error} />
+      {testSent ? <Notice kind="success">{testSent}</Notice> : null}
       {revealed ? <SecretNotice revealed={revealed} /> : null}
 
       <h2 id="direcciones">Direcciones registradas</h2>
@@ -181,9 +208,14 @@ function Integrations() {
                   </td>
                   <td>
                     <p className="actions">
-                      <button type="button" className="btn-link" onClick={() => setHistoryOf(subscription.id)}>
+                      <button type="button" className="btn-link" onClick={() => showHistory(subscription.id)}>
                         Ver avisos <span className="sr-only">de {subscription.url}</span>
                       </button>
+                      {subscription.status === "ACTIVE" ? (
+                        <button type="button" className="btn-link" disabled={busy} onClick={() => sendTest(subscription)}>
+                          Enviar aviso de prueba <span className="sr-only">a {subscription.url}</span>
+                        </button>
+                      ) : null}
                       <button type="button" className="btn-link" disabled={busy} onClick={() => toggle(subscription)}>
                         {subscription.status === "ACTIVE" ? "Apagar" : "Encender"} <span className="sr-only">{subscription.url}</span>
                       </button>
@@ -202,7 +234,7 @@ function Integrations() {
         </div>
       ) : null}
 
-      {open ? <History key={open.id} subscription={open} /> : null}
+      {open ? <History key={`${open.id}-${historyVersion}`} subscription={open} /> : null}
 
       <h2>Registrar una dirección</h2>
       <RegisterForm
@@ -383,6 +415,9 @@ function History({ subscription }: { subscription: Subscription }) {
   );
   const [error, setError] = useState<unknown>(undefined);
   const [busy, setBusy] = useState(false);
+  // Mientras algún aviso siga en camino (un aviso de prueba recién pedido, por ejemplo), se refresca solo.
+  const inFlight = deliveries.data?.items.some((delivery) => delivery.status === "PENDING" || delivery.status === "SENDING") ?? false;
+  usePolling(() => void deliveries.reload({ quiet: true }), inFlight, 3000);
 
   async function retry(delivery: Delivery) {
     if (busy) {
@@ -443,10 +478,12 @@ function History({ subscription }: { subscription: Subscription }) {
                       <td>{delivery.attemptCount}</td>
                       <td>
                         <p className="actions">
-                          <Link href={`/documentos/${delivery.documentId}`}>
-                            Ver comprobante <span className="sr-only">del aviso de {formatInstant(delivery.occurredAt)}</span>
-                          </Link>
-                          {delivery.status === "FAILED" ? (
+                          {delivery.documentId ? (
+                            <Link href={`/documentos/${delivery.documentId}`}>
+                              Ver comprobante <span className="sr-only">del aviso de {formatInstant(delivery.occurredAt)}</span>
+                            </Link>
+                          ) : null}
+                          {delivery.status === "FAILED" && delivery.eventType !== TEST_EVENT ? (
                             <button type="button" className="btn-link" disabled={busy} onClick={() => retry(delivery)}>
                               Reintentar <span className="sr-only">el aviso de {formatInstant(delivery.occurredAt)}</span>
                             </button>
