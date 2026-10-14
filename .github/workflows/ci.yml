@@ -1,0 +1,77 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      # Vulnerabilidades conocidas, graves o críticas, en lo que llega a producción.
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run lint
+      - run: npm run typecheck
+      # Incluye la comprobación de que src/api/schema.ts corresponde a contracts/openapi.yaml.
+      - run: npm test
+      - run: npm run build
+      - run: npm sbom --sbom-format cyclonedx --omit=dev > sbom.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web-sbom
+          path: sbom.json
+          if-no-files-found: error
+
+  # contracts/openapi.yaml es una copia del contrato de la API (DevNation593/backend-emite-facil): debe
+  # ser el de la API de la misma rama (o, en una rama de trabajo, el de la rama de destino o dev).
+  # Las pruebas de las pantallas se escriben contra los tipos de esta copia; si no fuera la de la API,
+  # pasarían contra una API que no existe.
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: La copia del contrato es la de la API
+        env:
+          BRANCHES: ${{ github.head_ref || github.ref_name }} ${{ github.base_ref }} dev
+        run: |
+          for branch in $BRANCHES; do
+            url="https://raw.githubusercontent.com/DevNation593/backend-emite-facil/$branch/contracts/openapi.yaml"
+            if curl -fsSL "$url" -o api-contract.yaml; then
+              echo "Contrato de la API en la rama $branch"
+              diff -u --strip-trailing-cr api-contract.yaml contracts/openapi.yaml
+              exit $?
+            fi
+          done
+          echo "No se encontró el contrato de la API"
+          exit 1
+
+  # La imagen se construye para comprobar que sigue construyéndose y que no corre como root.
+  # No se publica: el registro de imágenes aún no está elegido.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t einvoice-web:ci .
+      - name: No corre como root
+        run: test "$(docker run --rm --entrypoint id einvoice-web:ci -u)" != "0"
+
+  # En cada pull request: dependencias nuevas con vulnerabilidades conocidas o licencias no admitidas.
+  dependency-review:
+    if: github.event_name == 'pull_request' && !github.event.repository.private
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
