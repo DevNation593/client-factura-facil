@@ -33,7 +33,7 @@ jobs:
           path: sbom.json
           if-no-files-found: error
 
-  # contracts/openapi.yaml es una copia del contrato de la API (DevNation593/backend-emite-facil): debe
+  # contracts/openapi.yaml es una copia del contrato de la API (DevNation593/api-emite-facil): debe
   # ser el de la API de la misma rama (o, en una rama de trabajo, el de la rama de destino o dev).
   # Las pruebas de las pantallas se escriben contra los tipos de esta copia; si no fuera la de la API,
   # pasarían contra una API que no existe.
@@ -46,7 +46,7 @@ jobs:
           BRANCHES: ${{ github.head_ref || github.ref_name }} ${{ github.base_ref }} dev
         run: |
           for branch in $BRANCHES; do
-            url="https://raw.githubusercontent.com/DevNation593/backend-emite-facil/$branch/contracts/openapi.yaml"
+            url="https://raw.githubusercontent.com/DevNation593/api-emite-facil/$branch/contracts/openapi.yaml"
             if curl -fsSL "$url" -o api-contract.yaml; then
               echo "Contrato de la API en la rama $branch"
               diff -u --strip-trailing-cr api-contract.yaml contracts/openapi.yaml

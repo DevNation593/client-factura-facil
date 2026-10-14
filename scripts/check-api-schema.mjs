@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import openapiTS, { astToString } from "openapi-typescript";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-// Copia del contrato de la API (DevNation593/backend-emite-facil); el CI comprueba que es la misma.
+// Copia del contrato de la API (DevNation593/api-emite-facil); el CI comprueba que es la misma.
 const contract = path.resolve(here, "../contracts/openapi.yaml");
 const generated = path.resolve(here, "../src/api/schema.ts");
 
