@@ -6,7 +6,8 @@ La API, el contrato, la infraestructura, la documentación y las pruebas con nav
 
 ## Cómo está hecha
 
-- **El navegador nunca ve los tokens.** El servidor de Next hace el inicio de sesión OIDC (código de autorización con PKCE) y guarda la sesión cifrada (AES-256-GCM) en cookies `httpOnly`. Toda llamada a la API pasa por un único proxy, `/api/backend/*`, que añade el `Authorization` y la empresa activa en el servidor.
+- **El navegador nunca ve los tokens.** Las cuentas las lleva la API (correo y contraseña; no hay proveedor de identidad). Los formularios de ingreso, registro y recuperación de contraseña van a rutas del servidor de Next (`/auth/*`), que llaman a la API y guardan la sesión cifrada (AES-256-GCM) en cookies `httpOnly`. Toda llamada a la API pasa por un único proxy, `/api/backend/*`, que añade el `Authorization` y la empresa activa en el servidor; de `/auth` solo deja pasar `me`, `password` y `email-verification/resend`.
+- **Los enlaces de los correos llevan el código en el fragmento** (`#token=…`), que el navegador no envía a ningún servidor ni aparece en registros; la página lo lee una vez y lo quita de la barra de direcciones.
 - **Cada pestaña trabaja con su empresa.** La empresa activa se recuerda en una cookie, que es de todo el navegador; por eso cada petición nombra además la empresa de la pestaña que la hace, y esa es la que vale. Elegir otra empresa en otra pestaña no cambia a dónde escribe esta.
 - **El proxy decide a dónde se puede ir.** Solo reenvía a `${API_BASE_URL}/api/v1/…`, con los métodos que la API usa, sin cabeceras del navegador salvo las necesarias. Una petición que cambia datos debe venir del mismo origen y llevar la marca `X-Requested-With: einvoice-web`; si no, `403`.
 - **Tipos generados del contrato.** `src/api/schema.ts` sale de `contracts/openapi.yaml`, copia del contrato de la API ([api-emite-facil](https://github.com/DevNation593/api-emite-facil/blob/dev/contracts/openapi.yaml)). No se edita a mano: `npm run api:generate` lo regenera y una prueba falla si está desactualizado. Cuando la API cambia su contrato, se copia aquí y se regenera; el CI falla si la copia no es la de la API de la misma rama.
@@ -19,9 +20,10 @@ La API, el contrato, la infraestructura, la documentación y las pruebas con nav
 
 | Ruta | Qué hay |
 |---|---|
-| `src/server/` | Configuración, sesión cifrada, cliente OIDC y reglas del proxy. Solo código de servidor. |
-| `src/app/auth/`, `src/app/api/` | Inicio y cierre de sesión, estado de la sesión y el proxy de la API. |
-| `src/app/(app)/` | Las pantallas, que exigen sesión: comprobantes, facturas, clientes, productos, configuración, equipo e invitación. |
+| `src/server/` | Configuración, sesión cifrada, llamadas a las cuentas de la API y reglas del proxy. Solo código de servidor. |
+| `src/app/auth/`, `src/app/api/` | Ingreso, registro, confirmación del correo, recuperación de contraseña y salida; estado de la sesión y el proxy de la API. |
+| `src/app/ingresar`, `registro`, `verificar-correo`, `olvide-contrasena`, `restablecer-contrasena` | Pantallas sin sesión. |
+| `src/app/(app)/` | Las pantallas, que exigen sesión: comprobantes, facturas, clientes, productos, configuración, integraciones y la cuenta. |
 | `src/api/` | Cliente tipado de la API y traducción de sus errores a mensajes para el usuario. |
 | `src/lib/` | Aritmética decimal, vista previa de la factura, borradores, estados del comprobante, empresa activa. |
 | `src/components/` | Marco de la aplicación y piezas de formulario. |
@@ -35,9 +37,7 @@ Copiar `.env.example` a `.env.local` y completar. Ninguna llega al navegador.
 |---|---|
 | `API_BASE_URL` | Dirección de la API de Spring, sin `/api/v1`. |
 | `API_TIMEOUT_MS` | Opcional: cuánto se espera a la API antes de responder `504` (30000). |
-| `APP_BASE_URL` | Dirección pública de esta aplicación; de ella sale la redirección del inicio de sesión. Con `https`, las cookies llevan `Secure`; fuera de `localhost` es obligatorio. |
-| `OIDC_ISSUER`, `OIDC_CLIENT_ID` | Proveedor de identidad y cliente. El emisor debe ser el mismo que valida la API. Solo se admite `http` en `localhost`. |
-| `OIDC_CLIENT_SECRET`, `OIDC_AUDIENCE`, `OIDC_SCOPE` | Opcionales: cliente confidencial, audiencia que algunos proveedores exigen pedir, y ámbitos (por defecto `openid profile email`; el correo hace falta para aceptar invitaciones). |
+| `APP_BASE_URL` | Dirección pública de esta aplicación (la misma que `EINVOICE_WEB_URL` de la API). Con `https`, las cookies llevan `Secure`; fuera de `localhost` es obligatorio. |
 | `SESSION_SECRET` | Al menos 32 caracteres aleatorios. Cifra las cookies de sesión: cambiarlo cierra todas las sesiones. |
 
 ## Comandos
@@ -54,15 +54,16 @@ npm run dev
 npm run lint && npm run typecheck && npm test && npm run build
 ```
 
-Para arrancar todo en local (infraestructura, proveedor de identidad de desarrollo, API y esta aplicación), ver [docs/DEVELOPMENT.md](https://github.com/DevNation593/api-emite-facil/blob/dev/docs/DEVELOPMENT.md) en el repositorio de la API.
+Para arrancar todo en local (infraestructura, API y esta aplicación), ver [docs/DEVELOPMENT.md](https://github.com/DevNation593/api-emite-facil/blob/dev/docs/DEVELOPMENT.md) en el repositorio de la API.
 
 ## Límites conocidos
 
-- **Las pruebas con navegador viven en el repositorio de la API**, en [`e2e/`](https://github.com/DevNation593/api-emite-facil/blob/dev/e2e/README.md): recorren la aplicación completa (esta compilación de producción y el jar de la API) contra un SRI simulado. Aquí las pantallas se prueban como componentes contra una API simulada, y el código de servidor (inicio de sesión, renovación, cierre, proxy) contra un proveedor de identidad de prueba que corre en la propia máquina.
+- **Las pruebas con navegador viven en el repositorio de la API**, en [`e2e/`](https://github.com/DevNation593/api-emite-facil/blob/dev/e2e/README.md): recorren la aplicación completa (esta compilación de producción y el jar de la API) contra un SRI simulado. Aquí las pantallas se prueban como componentes contra una API simulada, y el código de servidor (ingreso, renovación, cierre, proxy) contra respuestas simuladas de la API.
 - **Solo se ha visto en Chromium**, en escritorio y en el ancho de un teléfono (375 px), donde ninguna pantalla principal se desplaza de lado; las tablas anchas se desplazan dentro de su caja. Lo que la revisión de las pantallas encontró y cómo quedó está en el [doc 15](https://github.com/DevNation593/api-emite-facil/blob/dev/docs/15-produccion.md).
 - **Una sola forma de pago por factura** en el editor. Los productos, como los clientes, se buscan: la lista de cada línea muestra los 20 primeros resultados.
 - **"Integraciones"** (propietario y administradores) registra las direcciones a las que avisar de lo que pasa con los comprobantes, muestra su secreto una sola vez y enseña los 20 avisos más recientes de cada una, sin paginar los anteriores. Si la instalación tiene los avisos apagados, registrar una dirección responde con un mensaje que lo dice.
-- **Las invitaciones no se envían:** "Equipo" muestra el enlace una vez y lo comparte quien invita. Para aceptarlo hay que iniciar sesión con el correo invitado, y el proveedor de identidad debe informar de ese correo.
+- **No hay equipo ni invitaciones:** cada usuario trabaja en las empresas que crea, como propietario.
+- **La IP del usuario sale de `X-Forwarded-For`.** La API limita los intentos de ingreso por IP con la que la web le pasa; sin un proxy de entrada que fije esa cabecera, la pone el propio navegador y el límite por IP no sirve (el bloqueo por correo sí).
 - **Los borradores quedan en el navegador al cerrar sesión.** En un equipo compartido, otra persona de la misma empresa que use el mismo perfil del navegador los vería.
-- **Una sola instancia a efectos de renovación de sesión.** Las peticiones simultáneas comparten una renovación del token dentro de un mismo proceso; con varias instancias y un proveedor que rota el token de refresco, hace falta afinidad de sesión o un almacén compartido.
+- **Una sola instancia a efectos de renovación de sesión.** Las peticiones simultáneas comparten una renovación del token dentro de un mismo proceso; con varias instancias, la API vería dos veces el mismo token de renovación y cerraría la sesión: hace falta afinidad de sesión o un almacén compartido.
 - **Solo español**, sin internacionalización.

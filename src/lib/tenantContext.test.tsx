@@ -164,7 +164,7 @@ describe("ErrorNotice", () => {
     render(<ErrorNotice error={apiError(401, "UNAUTHENTICATED")} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("Su sesión terminó.");
-    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/auth/login?volver=%2Fclientes");
+    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/ingresar?volver=%2Fclientes");
   });
 
   it("comes back to the same search or record after signing in, not just to the same screen", () => {
@@ -172,7 +172,7 @@ describe("ErrorNotice", () => {
     route.search = "?page=3";
     render(<ErrorNotice error={apiError(401, "UNAUTHENTICATED")} />);
 
-    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/auth/login?volver=%2Fdocumentos%3Fpage%3D3");
+    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/ingresar?volver=%2Fdocumentos%3Fpage%3D3");
   });
 
   it("has no link for other errors", () => {

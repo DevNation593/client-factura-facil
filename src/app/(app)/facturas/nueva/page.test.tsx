@@ -190,7 +190,7 @@ describe("Nueva factura", () => {
 
     const link = await screen.findByRole("link", { name: "inicie sesión" });
     const draft = listDrafts(TENANT_ID)[0]!;
-    expect(link).toHaveAttribute("href", `/auth/login?volver=${encodeURIComponent(`/facturas/nueva?borrador=${draft.id}`)}`);
+    expect(link).toHaveAttribute("href", `/ingresar?volver=${encodeURIComponent(`/facturas/nueva?borrador=${draft.id}`)}`);
     expect(draft.customerId).toBe(CUSTOMER.id);
     expect(draft.lines[0]?.quantity).toBe("2");
   });
@@ -324,7 +324,7 @@ describe("Nueva factura", () => {
     renderWithTenant(<NuevaFacturaPage />);
 
     const link = await screen.findByRole("link", { name: "Iniciar sesión" });
-    expect(link).toHaveAttribute("href", `/auth/login?volver=${encodeURIComponent(`/facturas/nueva?borrador=${draft.id}`)}`);
+    expect(link).toHaveAttribute("href", `/ingresar?volver=${encodeURIComponent(`/facturas/nueva?borrador=${draft.id}`)}`);
   });
 
   it("says which rejected invoice the draft replaces and tells the server when issuing", async () => {

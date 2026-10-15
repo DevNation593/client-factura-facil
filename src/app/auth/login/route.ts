@@ -1,23 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { login, safeReturnTo } from "@/server/authApi";
+import { clientIp, NO_STORE, problemResponse, readForm, text } from "@/server/authRoute";
 import { readConfig } from "@/server/config";
 import { logEvent } from "@/server/log";
-import { beginLogin } from "@/server/oidc";
-import { storePendingLogin } from "@/server/sessionStore";
+import { storeSession } from "@/server/sessionStore";
 
 export const dynamic = "force-dynamic";
 
-/** Inicia sesión: guarda lo necesario para validar la vuelta y envía al proveedor OIDC. */
-export async function GET(request: NextRequest) {
+/** Inicia sesión con correo y contraseña: la API da los tokens y aquí quedan en la sesión cifrada. */
+export async function POST(request: NextRequest) {
   const config = readConfig();
-  try {
-    const { url, pending } = await beginLogin(config, request.nextUrl.searchParams.get("volver"));
-    await storePendingLogin(pending, config);
-    return NextResponse.redirect(url);
+  const form = await readForm(request, config);
+  if (form instanceof NextResponse) {
+    return form;
   }
-  catch (error) {
-    // El proveedor de identidad no responde o su configuración no es la esperada: nadie puede entrar.
-    logEvent("error", "login.failed", { reason: "provider-unreachable", error: error instanceof Error ? error.name : "desconocido" });
-    return NextResponse.redirect(new URL("/ingresar?error=proveedor", config.appBaseUrl));
+  const result = await login(config, text(form, "email"), text(form, "password"), clientIp(request));
+  if ("problem" in result) {
+    logEvent("warn", "login.failed", { reason: result.problem.errorCode });
+    return problemResponse(result.problem);
   }
+  await storeSession(result.ok, config);
+  return NextResponse.json({ redirectTo: safeReturnTo(text(form, "volver")) }, { headers: NO_STORE });
 }

@@ -26,13 +26,12 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Clientes" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Comprobantes" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: "Nueva factura" })).toBeInTheDocument();
-    // Equipo e integraciones son de quien administra la empresa.
+    // Las integraciones son de quien administra la empresa.
     expect(screen.queryByRole("link", { name: "Integraciones" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Equipo" })).not.toBeInTheDocument();
     expect(screen.getByText("contenido")).toBeInTheDocument();
   });
 
-  it("offers the team and the integrations to whoever manages the company", async () => {
+  it("offers the integrations to whoever manages the company", async () => {
     route.pathname = "/integraciones";
     stubApi({ "GET /tenants": () => json(200, [{ ...TENANT, role: "ADMIN" }]) });
     render(
@@ -42,7 +41,8 @@ describe("AppShell", () => {
     );
 
     expect(await screen.findByRole("link", { name: "Integraciones" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "Equipo" })).toHaveAttribute("href", "/equipo");
+    // No hay pantalla de equipo: cada usuario trabaja en las empresas que crea.
+    expect(screen.queryByRole("link", { name: "Equipo" })).not.toBeInTheDocument();
   });
 
   it("signs out and leaves for the address the server gives", async () => {

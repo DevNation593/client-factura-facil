@@ -8,7 +8,7 @@ export class ApiError extends Error {
   readonly errorCode: string;
   readonly correlationId?: string;
   readonly detail?: string;
-  /** Mensajes por campo; solo los trae VALIDATION_FAILED. */
+  /** Mensajes por campo (VALIDATION_FAILED, WEAK_PASSWORD, INVALID_CURRENT_PASSWORD). */
   readonly fieldErrors: Record<string, string>;
 
   constructor(status: number, problem: Partial<Problem> | null) {
@@ -62,18 +62,16 @@ const MESSAGES: Record<string, string> = {
   REPLACED_DOCUMENT_NOT_REJECTED: "Solo se puede reemplazar un comprobante que el SRI devolvió o no autorizó, o cuyo XML no se pudo generar.",
   REPLACED_DOCUMENT_OTHER_ISSUER: "El comprobante que se reemplaza es de otro emisor. Emita la factura nueva con el mismo emisor.",
   DOCUMENT_ALREADY_REPLACED: "Ese comprobante ya fue reemplazado por otra factura. Revise los comprobantes.",
-  INVITATION_NOT_VALID: "La invitación no es válida: el enlace no existe, caducó o ya se usó. Pida una nueva a quien le invitó.",
-  INVITATION_EMAIL_MISMATCH: "Esta invitación es para otro correo. Cierre sesión e ingrese con la cuenta a la que se envió.",
-  EMAIL_NOT_VERIFIED: "Su cuenta aún no tiene el correo verificado. Verifíquelo y vuelva a abrir el enlace.",
-  ALREADY_MEMBER: "Esa persona ya forma parte de la empresa.",
-  ROLE_NOT_GRANTABLE: "Su rol no permite conceder ni retirar ese rol.",
-  OWNER_PROTECTED: "El propietario de la empresa no se puede retirar ni cambiar de rol.",
   WEBHOOKS_DISABLED: "Los avisos a otros sistemas no están habilitados en esta instalación. Pídalo a quien la administra.",
   WEBHOOK_LIMIT_REACHED: "La empresa ya tiene el máximo de direcciones registradas. Borre alguna antes de registrar otra.",
   WEBHOOK_DELIVERY_NOT_RETRYABLE: "Solo se puede reintentar un aviso que falló; este está pendiente o ya se entregó.",
   WEBHOOK_SUBSCRIPTION_DISABLED: "Esa dirección está apagada. Enciéndala antes de probarla o de reintentar sus avisos.",
   WEBHOOK_TEST_PENDING: "Ya hay un aviso de prueba en camino a esa dirección. Espere a que termine para enviar otro.",
-  INVITATION_LIMIT_REACHED: "La empresa ya tiene demasiadas invitaciones pendientes. Anule alguna antes de invitar a alguien más.",
+  INVALID_CREDENTIALS: "Correo o contraseña incorrectos.",
+  ACCOUNT_LOCKED: "Demasiados intentos fallidos con este correo. Espere unos minutos o elija una contraseña nueva con «Olvidé mi contraseña».",
+  INVALID_LINK: "El enlace no es válido, ya se usó o caducó. Pida uno nuevo.",
+  WEAK_PASSWORD: "La contraseña debe tener entre 12 y 128 caracteres y no puede ser su correo.",
+  INVALID_CURRENT_PASSWORD: "La contraseña actual no es correcta.",
   RATE_LIMITED: "Está haciendo demasiadas peticiones. Espere unos segundos e inténtelo de nuevo.",
   PRODUCTION_NOT_ENABLED: "Un emisor se registra en el ambiente de pruebas; el paso a producción se activa después.",
   PRODUCTION_REQUIREMENTS_NOT_MET: "El emisor todavía no cumple los requisitos para pasar a producción.",

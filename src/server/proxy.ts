@@ -22,6 +22,9 @@ export type ProxyOutput = { url: string; init: RequestInit } | { error: 400 | 40
 
 const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "DELETE"]);
 
+/** Lo de /auth que se pide con la sesión abierta, a través de este proxy. */
+const SESSION_AUTH_PATHS = new Set(["auth/me", "auth/password", "auth/email-verification/resend"]);
+
 const SAFE_SEGMENT = /^[A-Za-z0-9._~-]+$/;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -41,6 +44,10 @@ export function buildBackendRequest(input: ProxyInput): ProxyOutput {
   }
   if (input.path.length === 0 || input.path.some((segment) => !isSafeSegment(segment))) {
     return { error: 400 };
+  }
+  if (input.path[0] === "auth" && !SESSION_AUTH_PATHS.has(input.path.join("/"))) {
+    // Ingresar, renovar o salir tienen sus propias rutas (/auth/…), que guardan los tokens en la sesión.
+    return { error: 403 };
   }
   if (method !== "GET" && !isSameOriginRequest(input.headers, input.config)) {
     return { error: 403 };
@@ -85,7 +92,7 @@ function isSafeSegment(segment: string): boolean {
  * Una petición que cambia datos solo vale si la hizo esta misma aplicación: lleva la marca que un
  * formulario de otro sitio no puede añadir, y el navegador confirma el mismo origen.
  */
-function isSameOriginRequest(headers: Headers, config: ServerConfig): boolean {
+export function isSameOriginRequest(headers: Headers, config: ServerConfig): boolean {
   if (headers.get("x-requested-with") !== REQUEST_MARKER) {
     return false;
   }

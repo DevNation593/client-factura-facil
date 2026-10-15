@@ -9,11 +9,6 @@ export type ServerConfig = {
   apiTimeoutMs: number;
   /** Dirección pública de esta aplicación. */
   appBaseUrl: URL;
-  oidcIssuer: URL;
-  oidcClientId: string;
-  oidcClientSecret?: string;
-  oidcAudience?: string;
-  oidcScope: string;
   sessionSecret: string;
   /** Las cookies llevan Secure cuando la aplicación se sirve por HTTPS. */
   secureCookies: boolean;
@@ -72,21 +67,10 @@ export function readConfig(env: Record<string, string | undefined> = process.env
     // Sin TLS las cookies de sesión no llevarían Secure y viajarían en claro.
     throw new Error("APP_BASE_URL debe usar https (http solo se admite en localhost)");
   }
-  const oidcIssuer = httpUrl(env, "OIDC_ISSUER");
-  if (oidcIssuer.protocol === "http:" && !LOCAL_HOSTS.has(oidcIssuer.hostname)) {
-    // El inicio de sesión intercambia credenciales con el proveedor: sin cifrar solo en la propia máquina.
-    throw new Error("OIDC_ISSUER debe usar https (http solo se admite en localhost)");
-  }
   return {
     apiBaseUrl: httpUrl(env, "API_BASE_URL"),
     apiTimeoutMs: apiTimeout(env),
     appBaseUrl,
-    oidcIssuer,
-    oidcClientId: required(env, "OIDC_CLIENT_ID"),
-    oidcClientSecret: optional(env, "OIDC_CLIENT_SECRET"),
-    oidcAudience: optional(env, "OIDC_AUDIENCE"),
-    // El correo hace falta para aceptar invitaciones: la API lo lee del token de acceso.
-    oidcScope: optional(env, "OIDC_SCOPE") ?? "openid profile email",
     sessionSecret,
     secureCookies: appBaseUrl.protocol === "https:",
   };

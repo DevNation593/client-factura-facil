@@ -146,6 +146,12 @@ p {
   padding-top: 0.75rem;
 }
 
+.rail-user a {
+  color: #e8edf7;
+  display: block;
+  margin: 0.25rem 0;
+}
+
 .rail-user button {
   background: none;
   border: 0;
@@ -500,6 +506,21 @@ p {
   border-top: 6px solid var(--tinta);
   max-width: 26rem;
   padding: 2rem 1.5rem;
+  width: 100%;
+}
+
+.gate-brand {
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.25rem;
+  text-transform: uppercase;
+}
+
+.gate-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-top: 1.25rem;
 }
 
 @media (max-width: 52rem) {

@@ -4,7 +4,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 import { sealSession, SESSION_COOKIE, type Session } from "@/server/session";
 import { fakeCookieJar, putChunks, type FakeCookieJar } from "@/test/cookies";
-import { startFakeIdp, type FakeIdp } from "@/test/idp";
 
 import { POST } from "./route";
 
@@ -17,32 +16,24 @@ const APP = "http://localhost:3000";
 const TENANT_OF_THE_TAB = "0b9d6c5e-3f0a-4a57-9c0e-2f1d3b4a5c6d";
 const TENANT_OF_THE_COOKIE = "7c1e2d3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
 
-let idp: FakeIdp;
 let jar: FakeCookieJar;
 let upstream: ReturnType<typeof vi.fn<(url: string, init: RequestInit) => Promise<Response>>>;
 
-beforeAll(async () => {
-  idp = await startFakeIdp();
+beforeAll(() => {
   vi.stubEnv("API_BASE_URL", API);
   vi.stubEnv("APP_BASE_URL", APP);
-  vi.stubEnv("OIDC_ISSUER", idp.issuer);
-  vi.stubEnv("OIDC_CLIENT_ID", "einvoice-web");
   vi.stubEnv("SESSION_SECRET", SECRET);
 });
 
-afterAll(async () => {
+afterAll(() => {
   vi.unstubAllEnvs();
-  await idp.close();
 });
 
 beforeEach(() => {
   jar = fakeCookieJar();
   incoming.jar = jar;
   upstream = vi.fn(async () => new Response(JSON.stringify({ id: "c-1" }), { status: 201, headers: { "Content-Type": "application/json" } }));
-  // Solo las llamadas a la API se simulan; las del proveedor de identidad van de verdad.
-  const real = globalThis.fetch;
-  vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) =>
-    String(input).startsWith(API) ? upstream(String(input), init ?? {}) : real(input, init));
+  vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => upstream(String(input), init ?? {}));
 });
 
 async function signedIn(overrides: Partial<Session> = {}) {
@@ -236,14 +227,15 @@ describe("proxy de la API", () => {
   });
 
   it("answers 503 and keeps the session when it cannot be renewed right now", async () => {
-    idp.onToken(() => ({ status: 503, body: "en mantenimiento" }));
+    // La API no puede renovar la sesión en este momento.
+    upstream.mockImplementation(async () => new Response("en mantenimiento", { status: 503 }));
     await signedIn({ refreshToken: "refresco", expiresAt: Date.now() - 1_000 });
     const before = new Map(jar.values);
 
     const response = await call(post(JSON.stringify({ name: "Ana" })));
 
     expect(response.status).toBe(503);
-    expect(upstream).not.toHaveBeenCalled();
+    expect(upstream.mock.calls.map(([url]) => url)).toEqual([`${API}/api/v1/auth/refresh`]);
     expect(jar.values).toEqual(before);
   });
 });

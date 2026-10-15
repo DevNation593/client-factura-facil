@@ -8,8 +8,6 @@ import type { Session } from "./session";
 const config = readConfig({
   API_BASE_URL: "http://api.interno:8080",
   APP_BASE_URL: "https://facturas.example.com",
-  OIDC_ISSUER: "https://idp.example.com/realms/einvoice",
-  OIDC_CLIENT_ID: "einvoice-web",
   SESSION_SECRET: "un-secreto-de-pruebas-de-mas-de-treinta-y-dos-caracteres",
 });
 
@@ -132,6 +130,16 @@ describe("buildBackendRequest", () => {
     }
     // Un identificador normal sí pasa.
     expectForwarded(buildBackendRequest(input({ path: ["documents", TENANT, "artifacts", "xml-signed"] })));
+  });
+
+  it("lets through only the account operations that need an open session", () => {
+    for (const path of [["auth", "me"], ["auth", "password"], ["auth", "email-verification", "resend"]]) {
+      expectForwarded(buildBackendRequest(input({ method: "POST", path, headers: sameOrigin() })));
+    }
+    // Ingresar, renovar o salir van por /auth/…, que guarda los tokens en la sesión, no por aquí.
+    for (const path of [["auth", "login"], ["auth", "refresh"], ["auth", "logout"], ["auth"], ["auth", "password-reset"]]) {
+      expect(buildBackendRequest(input({ method: "POST", path, headers: sameOrigin() })), path.join("/")).toEqual({ error: 403 });
+    }
   });
 
   it("requires same origin and the marker header for requests that change data", () => {
