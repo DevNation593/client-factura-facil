@@ -614,3 +614,10 @@ code {
   border-bottom: 1px solid var(--pauta);
   padding: 0.6rem 0;
 }
+
+/* Un ejemplo de código (el curl de las API keys) se parte en vez de ensanchar la página. */
+pre {
+  margin: 0.75rem 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
