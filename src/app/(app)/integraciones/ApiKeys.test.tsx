@@ -101,11 +101,10 @@ describe("API keys", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/máximo de API keys/);
   });
 
-  it("explica cómo usarla", async () => {
+  it("no explica cómo llamar a la API: eso lo cuenta su documentación", async () => {
     keys();
     renderWithTenant(<ApiKeys />);
-    const help = await screen.findByText(/curl/);
-    expect(help).toHaveTextContent("X-Api-Key");
-    expect(help).toHaveTextContent("/api/v1/tenants/current");
+    await screen.findByRole("table", { name: "API keys" });
+    expect(screen.queryByText(/curl|X-Api-Key/)).toBeNull();
   });
 });
