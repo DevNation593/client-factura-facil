@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { formatInstant } from "@/lib/dates";
 import { json, problem, stubApi } from "@/test/api";
 import { renderWithTenant } from "@/test/render";
 
@@ -40,9 +41,13 @@ describe("API keys", () => {
     expect(within(erp).getByText("efk_Ab12Cd34Ef56_…")).toBeInTheDocument();
     expect(within(erp).getByText("ana@empresa.ec")).toBeInTheDocument();
     expect(within(erp).getByText("Nunca")).toBeInTheDocument();
+    expect(within(erp).getByRole("cell", { name: formatInstant(ERP.createdAt) })).toBeInTheDocument();
     expect(within(erp).getByRole("button", { name: /Revocar/ })).toBeInTheDocument();
+    expect(erp).not.toHaveClass("muted");
+    expect(within(table).getByRole("columnheader", { name: "Creada" })).toBeInTheDocument();
     const old = within(table).getByRole("cell", { name: "Tienda vieja" }).closest("tr") as HTMLElement;
     expect(within(old).getByText(/Revocada el/)).toBeInTheDocument();
+    expect(old).toHaveClass("muted");
     expect(within(old).queryByRole("button", { name: /Revocar/ })).not.toBeInTheDocument();
   });
 
@@ -66,6 +71,8 @@ describe("API keys", () => {
     expect(writeText).toHaveBeenCalledWith("efk_Qq11Ww22Ee33_secreto");
     expect(api.to("GET", "/api-keys")).toHaveLength(2);
     expect(screen.getByLabelText("Nombre de la key")).toHaveValue("");
+    // El mismo largo que acepta la API.
+    expect(screen.getByLabelText("Nombre de la key")).toHaveAttribute("maxLength", "80");
   });
 
   it("revocar pide confirmación", async () => {

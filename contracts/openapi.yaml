@@ -682,7 +682,12 @@ paths:
     post:
       tags: [products]
       operationId: createProduct
-      summary: Registra un producto o servicio. Requiere rol OWNER o ADMIN.
+      security:
+        - bearerAuth: []
+        - apiKey: []
+      summary: >
+        Registra un producto o servicio. Requiere rol OWNER o ADMIN, o una API key (un sistema
+        externo factura artículos nuevos). Una persona con rol BILLER no crea productos.
       requestBody:
         required: true
         content:
@@ -1367,7 +1372,9 @@ components:
       name: X-Api-Key
       description: >
         API key de la empresa (efk_<publicId>_<secreto>), creada con POST /api-keys. Actúa con el rol
-        BILLER a nombre de quien la creó. No se envía junto con Authorization.
+        BILLER a nombre de quien la creó. No se envía junto con Authorization. Si la base no responde
+        al comprobarla, la respuesta es 503 INTERNAL_ERROR, no 401: la key sigue valiendo y se puede
+        reintentar.
   headers:
     X-Correlation-ID:
       description: >
@@ -1382,6 +1389,8 @@ components:
       description: >
         Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a
         varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN.
+        Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403
+        TENANT_FORBIDDEN).
       schema: { type: string, format: uuid }
   responses:
     Problem:
@@ -1984,7 +1993,7 @@ components:
       type: object
       required: [name]
       properties:
-        name: { type: string, minLength: 1, maxLength: 80, description: Se recorta; sin caracteres de control. }
+        name: { type: string, minLength: 1, maxLength: 80, description: "Se recorta (también los espacios Unicode) y, ya recortado, debe tener entre 1 y 80 caracteres; sin caracteres de control." }
     CreateTaxpayerRequest:
       type: object
       required: [ruc, legalName, headOfficeAddress, defaultEnvironment]

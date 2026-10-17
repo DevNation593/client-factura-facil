@@ -279,7 +279,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -302,7 +302,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -374,7 +374,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -412,7 +412,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -421,7 +421,7 @@ export interface paths {
         /** Productos de la empresa activa, paginados; q busca en nombre o código. */
         get: operations["listProducts"];
         put?: never;
-        /** Registra un producto o servicio. Requiere rol OWNER o ADMIN. */
+        /** Registra un producto o servicio. Requiere rol OWNER o ADMIN, o una API key (un sistema externo factura artículos nuevos). Una persona con rol BILLER no crea productos. */
         post: operations["createProduct"];
         delete?: never;
         options?: never;
@@ -535,7 +535,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -592,7 +592,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -1217,7 +1217,7 @@ export interface components {
             createdAt: string;
         };
         CreateApiKeyRequest: {
-            /** @description Se recorta; sin caracteres de control. */
+            /** @description Se recorta (también los espacios Unicode) y, ya recortado, debe tener entre 1 y 80 caracteres; sin caracteres de control. */
             name: string;
         };
         CreateTaxpayerRequest: {
@@ -1337,7 +1337,7 @@ export interface components {
         };
     };
     parameters: {
-        /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+        /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
         TenantId: string;
     };
     requestBodies: never;
@@ -1715,7 +1715,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -1741,7 +1741,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -1767,7 +1767,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -1815,7 +1815,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -1844,7 +1844,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -1873,7 +1873,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -1918,7 +1918,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -1947,7 +1947,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -1991,7 +1991,7 @@ export interface operations {
                 establishmentId: string;
             };
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2018,7 +2018,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2128,7 +2128,7 @@ export interface operations {
                 q?: string;
             };
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2159,7 +2159,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2191,7 +2191,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2224,7 +2224,7 @@ export interface operations {
                 q?: string;
             };
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2255,7 +2255,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2287,7 +2287,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2316,7 +2316,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2358,7 +2358,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
                 /** @description Identifica el intento de emisión (hasta 100 caracteres: letras, dígitos y . _ : -). Repetirlo con el mismo cuerpo devuelve el mismo documento; con otro cuerpo responde 409 IDEMPOTENCY_KEY_REUSED. */
                 "Idempotency-Key": string;
@@ -2405,7 +2405,7 @@ export interface operations {
                 size?: number;
             };
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2436,7 +2436,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2465,7 +2465,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2501,7 +2501,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2530,7 +2530,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2581,7 +2581,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2619,7 +2619,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2650,7 +2650,7 @@ export interface operations {
                 taxpayerId: string;
             };
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2677,7 +2677,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2717,7 +2717,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2743,7 +2743,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -2783,7 +2783,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2820,7 +2820,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2850,7 +2850,7 @@ export interface operations {
                 size?: number;
             };
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2879,7 +2879,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2915,7 +2915,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2953,7 +2953,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {
@@ -2986,7 +2986,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -3012,7 +3012,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path?: never;
@@ -3051,7 +3051,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. */
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
                 "X-Tenant-Id"?: components["parameters"]["TenantId"];
             };
             path: {

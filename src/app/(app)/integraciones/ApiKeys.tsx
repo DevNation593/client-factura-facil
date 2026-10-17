@@ -88,6 +88,7 @@ export function ApiKeys() {
               <tr>
                 <th scope="col">Nombre</th>
                 <th scope="col">Key</th>
+                <th scope="col">Creada</th>
                 <th scope="col">Creada por</th>
                 <th scope="col">Último uso</th>
                 <th scope="col">
@@ -97,11 +98,12 @@ export function ApiKeys() {
             </thead>
             <tbody>
               {keys.data.map((key) => (
-                <tr key={key.id}>
+                <tr key={key.id} className={key.revokedAt ? "muted" : undefined}>
                   <td>{key.name}</td>
                   <td>
                     <code>{`efk_${key.publicId}_…`}</code>
                   </td>
+                  <td>{formatInstant(key.createdAt)}</td>
                   <td>{key.createdBy ?? ""}</td>
                   <td>{key.lastUsedAt ? formatInstant(key.lastUsedAt) : "Nunca"}</td>
                   <td>
@@ -123,7 +125,7 @@ export function ApiKeys() {
       <h3>Crear una API key</h3>
       <form className="form" onSubmit={create}>
         <Field label="Nombre de la key" hint="Para reconocerla en esta lista, por ejemplo el sistema que la usará." className="wide">
-          <input value={name} onChange={(event) => setName(event.target.value)} maxLength={100} required />
+          <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required />
         </Field>
         <div className="actions wide">
           <button type="submit" className="btn btn-primary" disabled={busy}>

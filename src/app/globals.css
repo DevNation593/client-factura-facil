@@ -339,6 +339,11 @@ p {
   background: var(--papel-hundido);
 }
 
+/* Filas que ya no cuentan (una API key revocada): se leen, pero en segundo plano. */
+.ruled tr.muted td {
+  color: var(--tinta-suave);
+}
+
 .num {
   font-variant-numeric: tabular-nums;
 }
