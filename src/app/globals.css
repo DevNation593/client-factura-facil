@@ -339,6 +339,11 @@ p {
   background: var(--papel-hundido);
 }
 
+/* Filas que ya no cuentan (una API key revocada): se leen, pero en segundo plano. */
+.ruled tr.muted td {
+  color: var(--tinta-suave);
+}
+
 .num {
   font-variant-numeric: tabular-nums;
 }
@@ -613,4 +618,11 @@ code {
 .checklist li {
   border-bottom: 1px solid var(--pauta);
   padding: 0.6rem 0;
+}
+
+/* Un ejemplo de código (el curl de las API keys) se parte en vez de ensanchar la página. */
+pre {
+  margin: 0.75rem 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
