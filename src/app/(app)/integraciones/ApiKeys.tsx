@@ -133,12 +133,6 @@ export function ApiKeys() {
           </button>
         </div>
       </form>
-
-      <h3>Cómo usarla</h3>
-      <p>
-        Envíe la key en la cabecera <code>X-Api-Key</code> de cada llamada, directamente a la dirección de la API:
-      </p>
-      <pre>{`curl -H "X-Api-Key: efk_…" https://<dirección de la API>/api/v1/tenants/current`}</pre>
     </section>
   );
 }
