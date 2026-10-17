@@ -83,12 +83,19 @@ p {
   min-height: 100vh;
 }
 
+/* El talonario se queda en su sitio mientras la hoja se desplaza; si no cabe en la ventana, se
+   desplaza él solo. */
 .rail {
+  align-self: start;
   background: var(--tinta);
   color: #e8edf7;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
   padding: 1.25rem 0;
+  position: sticky;
+  top: 0;
 }
 
 .rail-company {
@@ -144,6 +151,12 @@ p {
   font-size: 0.8125rem;
   margin: 0.75rem 1rem 0;
   padding-top: 0.75rem;
+}
+
+.rail-user a {
+  color: #e8edf7;
+  display: block;
+  margin: 0.25rem 0;
 }
 
 .rail-user button {
@@ -333,6 +346,11 @@ p {
   background: var(--papel-hundido);
 }
 
+/* Filas que ya no cuentan (una API key revocada): se leen, pero en segundo plano. */
+.ruled tr.muted td {
+  color: var(--tinta-suave);
+}
+
 .num {
   font-variant-numeric: tabular-nums;
 }
@@ -500,6 +518,21 @@ p {
   border-top: 6px solid var(--tinta);
   max-width: 26rem;
   padding: 2rem 1.5rem;
+  width: 100%;
+}
+
+.gate-brand {
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.25rem;
+  text-transform: uppercase;
+}
+
+.gate-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-top: 1.25rem;
 }
 
 @media (max-width: 52rem) {
@@ -509,8 +542,11 @@ p {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* En el teléfono el talonario va encima de la hoja: fijo ocuparía media pantalla. */
   .rail {
+    height: auto;
     padding: 0.75rem 0;
+    position: static;
   }
 
   .rail nav {

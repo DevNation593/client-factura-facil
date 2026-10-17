@@ -7,13 +7,13 @@ import { CompactEncrypt, compactDecrypt } from "jose";
 export type Session = {
   accessToken: string;
   refreshToken?: string;
-  /** Token de identidad: solo para decirle al proveedor qué sesión cerrar al salir. */
-  idToken?: string;
   /** Caducidad del token de acceso, en milisegundos desde la época. */
   expiresAt: number;
   /** Inicio de la sesión: no se prolonga más allá de MAX_SESSION_AGE_MS aunque se renueve el token. */
   startedAt: number;
+  /** Id del usuario en la API. */
   subject: string;
+  /** Lo que se muestra del usuario: su correo. */
   name?: string;
 };
 
@@ -89,7 +89,6 @@ function isSession(value: unknown): value is Session {
     && typeof candidate.startedAt === "number"
     && typeof candidate.subject === "string"
     && (candidate.refreshToken === undefined || typeof candidate.refreshToken === "string")
-    && (candidate.idToken === undefined || typeof candidate.idToken === "string")
     && (candidate.name === undefined || typeof candidate.name === "string")
   );
 }

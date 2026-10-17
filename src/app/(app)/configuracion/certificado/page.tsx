@@ -6,7 +6,7 @@ import { api, unwrap } from "@/api/client";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
-import { commonName } from "@/lib/distinguishedName";
+import { holderName } from "@/lib/distinguishedName";
 import { canWrite, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
 
@@ -117,10 +117,7 @@ export default function CertificadoPage() {
                 <tbody>
                   {certificates.data.map((certificate) => (
                     <tr key={certificate.id}>
-                      <td>
-                        {commonName(certificate.subject)}
-                        <p className="field-hint break">{certificate.subject}</p>
-                      </td>
+                      <td>{holderName(certificate.subject)}</td>
                       <td>{date.format(new Date(certificate.validFrom))}</td>
                       <td>{date.format(new Date(certificate.validTo))}</td>
                       <td>{STATUS_LABELS[certificate.status] ?? certificate.status}</td>

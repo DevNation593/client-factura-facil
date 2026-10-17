@@ -1,26 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { logout } from "@/server/authApi";
+import { NO_STORE, problemResponse } from "@/server/authRoute";
 import { readConfig } from "@/server/config";
-import { endSessionUrl } from "@/server/oidc";
+import { isSameOriginRequest } from "@/server/proxy";
 import { clearSession, readSession } from "@/server/sessionStore";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Cierra la sesión aquí y devuelve a dónde debe ir el navegador para cerrarla también en el
- * proveedor de identidad (o a la pantalla de ingreso, si el proveedor no publica esa dirección).
- * Solo desde esta misma aplicación.
- */
+/** Cierra la sesión en la API y aquí, y dice a dónde ir después. Solo desde esta misma aplicación. */
 export async function POST(request: NextRequest) {
   const config = readConfig();
-  const origin = request.headers.get("origin");
-  const site = request.headers.get("sec-fetch-site");
-  const sameOrigin = (origin === null || origin === config.appBaseUrl.origin) && (site === null || site === "same-origin");
-  if (!sameOrigin || (origin === null && site === null)) {
-    return NextResponse.json({ status: 403, errorCode: "FORBIDDEN", correlationId: crypto.randomUUID() }, { status: 403 });
+  if (!isSameOriginRequest(request.headers, config)) {
+    return problemResponse({ status: 403, errorCode: "FORBIDDEN", detail: "Petición no admitida" });
   }
   const session = await readSession(config);
+  await logout(config, session);
   await clearSession();
-  const destination = (await endSessionUrl(config, session)) ?? new URL("/ingresar", config.appBaseUrl);
-  return NextResponse.json({ redirectTo: destination.toString() }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ redirectTo: "/ingresar" }, { headers: NO_STORE });
 }

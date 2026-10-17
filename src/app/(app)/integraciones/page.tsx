@@ -8,10 +8,13 @@ import type { components } from "@/api/schema";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
+import { SecretNotice } from "@/components/SecretNotice";
 import { formatInstant } from "@/lib/dates";
 import { canWrite, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
 import { usePolling } from "@/lib/usePolling";
+
+import { ApiKeys } from "./ApiKeys";
 
 type Subscription = components["schemas"]["WebhookSubscription"];
 type EventType = components["schemas"]["WebhookEventType"];
@@ -171,7 +174,16 @@ function Integrations() {
       <ErrorNotice error={subscriptions.error} />
       <ErrorNotice error={error} />
       {testSent ? <Notice kind="success">{testSent}</Notice> : null}
-      {revealed ? <SecretNotice revealed={revealed} /> : null}
+      {revealed ? (
+        <SecretNotice label="Secreto de firma" value={revealed.secret} copyLabel="Copiar secreto">
+          <p>
+            {revealed.note} Guarde este secreto en su sistema: con él comprobará que los avisos son nuestros, y{" "}
+            <strong>no se volverá a mostrar</strong>.
+          </p>
+        </SecretNotice>
+      ) : null}
+
+      <ApiKeys />
 
       <h2 id="direcciones">Direcciones registradas</h2>
       {subscriptions.loading ? <p>Cargando…</p> : null}
@@ -286,39 +298,6 @@ function SubscriptionStatus({ subscription }: { subscription: Subscription }) {
     );
   }
   return <span className="state state-warning">Apagada</span>;
-}
-
-function SecretNotice({ revealed }: { revealed: Revealed }) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(revealed.secret);
-      setCopied(true);
-    }
-    catch {
-      // Sin permiso para el portapapeles: el secreto sigue a la vista para copiarlo a mano.
-      setCopied(false);
-    }
-  }
-
-  return (
-    <Notice kind="success">
-      <p>
-        {revealed.note} Guarde este secreto en su sistema: con él comprobará que los avisos son nuestros, y{" "}
-        <strong>no se volverá a mostrar</strong>.
-      </p>
-      <Field label="Secreto de firma">
-        <input value={revealed.secret} readOnly onFocus={(event) => event.target.select()} />
-      </Field>
-      <p className="actions">
-        <button type="button" className="btn" onClick={copy}>
-          Copiar secreto
-        </button>
-        {copied ? <span role="status">Secreto copiado.</span> : null}
-      </p>
-    </Notice>
-  );
 }
 
 function RegisterForm({ onRegistered }: { onRegistered: (secret: string, url: string) => void }) {

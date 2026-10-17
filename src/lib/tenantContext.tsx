@@ -7,7 +7,7 @@ import { ApiError } from "@/api/problem";
 import type { components } from "@/api/schema";
 
 import { sessionNavigation } from "./sessionNavigation";
-import { activeTenantId, clearActiveTenant, pinTenant, setActiveTenant } from "./tenant";
+import { activeTenantId, clearActiveTenant, pinnedTenant, pinTenant, setActiveTenant } from "./tenant";
 
 export type Tenant = components["schemas"]["Tenant"];
 
@@ -75,8 +75,12 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Sin acceso ya a la empresa en uso: se suelta y se va a elegir otra, en vez de dejar cada
-    // pantalla con su propio error.
+    // pantalla con su propio error. Sin ninguna empresa en uso no hay nada que perder: es un usuario
+    // que aún no tiene empresa, y la pantalla ya le ofrece crear una.
     const lost = () => {
+      if (pinnedTenant() === null) {
+        return;
+      }
       clearActiveTenant();
       pinTenant(null);
       sessionNavigation.leave("/empresas");
