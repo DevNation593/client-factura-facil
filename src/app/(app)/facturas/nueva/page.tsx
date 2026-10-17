@@ -14,6 +14,7 @@ import { catalogLabel } from "@/lib/catalogLabels";
 import { formatUnitPrice } from "@/lib/decimal";
 import { deleteDraft, findDraft, newDraft, saveDraft, type Draft, type DraftLine } from "@/lib/drafts";
 import { previewInvoice, sumAmounts } from "@/lib/invoicePreview";
+import { loginUrl } from "@/lib/sessionNavigation";
 import { canBill, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
 import { useDebounced } from "@/lib/useDebounced";
@@ -491,7 +492,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
       {sessionExpired ? (
         <Notice kind="error">
           Su sesión terminó. El borrador está guardado:{" "}
-          <a href={`/auth/login?volver=${encodeURIComponent(`/facturas/nueva?borrador=${draft.id}`)}`}>inicie sesión</a> y continúe donde lo dejó.
+          <a href={loginUrl(`/facturas/nueva?borrador=${draft.id}`)}>inicie sesión</a> y continúe donde lo dejó.
         </Notice>
       ) : keyReused ? (
         <Notice kind="error">

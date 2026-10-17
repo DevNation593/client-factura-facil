@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await readSession(readConfig());
   if (session === null) {
-    // Con la dirección pedida (la pone src/proxy.ts): un enlace de invitación sobrevive al inicio de sesión.
+    // Con la dirección pedida (la pone src/proxy.ts): un enlace a una página sobrevive al inicio de sesión.
     redirect(signInPath((await headers()).get("x-return-to")));
   }
   return <AppShell userName={session.name ?? null}>{children}</AppShell>;

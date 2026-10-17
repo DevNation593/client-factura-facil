@@ -1,43 +1,31 @@
 // @vitest-environment node
-import { createServer } from "node:net";
-import type { AddressInfo } from "node:net";
-
 import { NextRequest } from "next/server";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { openSession, readChunks, SESSION_COOKIE } from "@/server/session";
 import { fakeCookieJar, type FakeCookieJar } from "@/test/cookies";
-import { startFakeIdp, type FakeIdp } from "@/test/idp";
+import { accessToken, tokensResponse } from "@/test/tokens";
 
-import { GET } from "./route";
+import { POST } from "./route";
 
 const incoming = vi.hoisted(() => ({ jar: undefined as unknown }));
 vi.mock("next/headers", () => ({ cookies: async () => incoming.jar }));
 
+const SECRET = "un-secreto-de-pruebas-de-mas-de-treinta-y-dos-caracteres";
 const APP = "http://localhost:3000";
+const API = "http://api.interno:8080";
+const SAME_ORIGIN = { "X-Requested-With": "einvoice-web", Origin: APP, "Sec-Fetch-Site": "same-origin", "Content-Type": "application/json" };
 
-let idp: FakeIdp;
 let jar: FakeCookieJar;
 
-/** Un puerto de esta máquina en el que nadie escucha. */
-async function closedPort(): Promise<number> {
-  const server = createServer();
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const { port } = server.address() as AddressInfo;
-  await new Promise((resolve) => server.close(resolve));
-  return port;
-}
-
-beforeAll(async () => {
-  idp = await startFakeIdp();
-  vi.stubEnv("API_BASE_URL", "http://api.interno:8080");
+beforeAll(() => {
+  vi.stubEnv("API_BASE_URL", API);
   vi.stubEnv("APP_BASE_URL", APP);
-  vi.stubEnv("OIDC_CLIENT_ID", "einvoice-web");
-  vi.stubEnv("SESSION_SECRET", "un-secreto-de-pruebas-de-mas-de-treinta-y-dos-caracteres");
+  vi.stubEnv("SESSION_SECRET", SECRET);
 });
 
-afterAll(async () => {
+afterAll(() => {
   vi.unstubAllEnvs();
-  await idp.close();
 });
 
 beforeEach(() => {
@@ -45,34 +33,77 @@ beforeEach(() => {
   incoming.jar = jar;
 });
 
-describe("inicio de sesión", () => {
-  // Va primero: el proveedor se descubre una vez por proceso y un fallo no se recuerda.
-  it("sends the user back with a message, and tells the operator, when the provider cannot be reached", async () => {
-    vi.stubEnv("OIDC_ISSUER", `http://127.0.0.1:${await closedPort()}/realms/einvoice`);
-    const lines: Record<string, unknown>[] = [];
-    vi.spyOn(console, "error").mockImplementation((line: unknown) => {
-      lines.push(JSON.parse(String(line)) as Record<string, unknown>);
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+function login(body: unknown, headers: Record<string, string> = SAME_ORIGIN) {
+  return POST(new NextRequest(`${APP}/auth/login`, { method: "POST", headers, body: JSON.stringify(body) }));
+}
+
+describe("ingreso", () => {
+  it("keeps the API's tokens in the encrypted session and goes where the user was going", async () => {
+    const token = accessToken({ sub: "u-7", email: "ana@example.test" });
+    const api = vi.fn(async () => tokensResponse(token, "refresco-1"));
+    vi.stubGlobal("fetch", api);
+
+    const response = await login({ email: "ana@example.test", password: "una contraseña larga", volver: "/documentos?page=2" }, {
+      ...SAME_ORIGIN,
+      "X-Forwarded-For": "203.0.113.9, 10.0.0.1",
     });
 
-    const response = await GET(new NextRequest(`${APP}/auth/login?volver=%2Fdocumentos`));
-
-    expect(response.headers.get("location")).toBe(`${APP}/ingresar?error=proveedor`);
-    expect(jar.values.size).toBe(0);
-    expect(lines).toContainEqual(expect.objectContaining({ event: "login.failed", reason: "provider-unreachable" }));
+    const text = await response.text();
+    expect(JSON.parse(text)).toEqual({ redirectTo: "/documentos?page=2" });
+    // La respuesta no lleva los tokens: solo la cookie cifrada.
+    expect(text).not.toContain(token);
+    const session = await openSession(readChunks(SESSION_COOKIE, (name) => jar.get(name)?.value), SECRET);
+    expect(session).toMatchObject({ accessToken: token, refreshToken: "refresco-1", subject: "u-7", name: "ana@example.test" });
+    const [url, init] = api.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(String(url)).toBe(`${API}/api/v1/auth/login`);
+    expect(JSON.parse(String(init.body))).toEqual({ email: "ana@example.test", password: "una contraseña larga" });
+    // La API limita los intentos por la IP del navegador, no por la de la web.
+    expect(new Headers(init.headers).get("X-Forwarded-For")).toBe("203.0.113.9");
   });
 
-  it("sends the user to the provider with PKCE and remembers where they were going", async () => {
-    vi.stubEnv("OIDC_ISSUER", idp.issuer);
+  it("never sends the user to another site after signing in", async () => {
+    vi.stubGlobal("fetch", async () => tokensResponse(accessToken({ sub: "u-7" }), "r"));
+    for (const volver of ["https://evil.example", "//evil.example", "/\\evil"]) {
+      expect(await (await login({ email: "a@b.ec", password: "x", volver })).json()).toEqual({ redirectTo: "/" });
+    }
+  });
 
-    const response = await GET(new NextRequest(`${APP}/auth/login?volver=%2Fdocumentos`));
+  it("passes on the API's refusal, with its code and when to try again", async () => {
+    vi.stubGlobal("fetch", async () =>
+      new Response(JSON.stringify({ status: 429, errorCode: "ACCOUNT_LOCKED", detail: "Demasiados intentos" }), {
+        status: 429,
+        headers: { "Retry-After": "600", "Content-Type": "application/problem+json" },
+      }));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const destination = new URL(response.headers.get("location") ?? "");
-    expect(destination.origin + destination.pathname).toBe(`${idp.issuer}/authorize`);
-    expect(destination.searchParams.get("code_challenge_method")).toBe("S256");
-    expect(destination.searchParams.get("redirect_uri")).toBe(`${APP}/auth/callback`);
-    expect(destination.searchParams.get("state")).toBeTruthy();
-    // Lo necesario para validar la vuelta viaja cifrado en una cookie, no en la dirección.
-    expect(jar.get("einvoice_login.0")?.value).toBeTruthy();
-    expect(destination.search).not.toContain("documentos");
+    const response = await login({ email: "a@b.ec", password: "mala" });
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("600");
+    expect(await response.json()).toMatchObject({ errorCode: "ACCOUNT_LOCKED" });
+    expect(jar.values.size).toBe(0);
+  });
+
+  it("answers 503 when the API cannot be reached", async () => {
+    vi.stubGlobal("fetch", async () => {
+      throw new TypeError("fetch failed");
+    });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect((await login({ email: "a@b.ec", password: "x" })).status).toBe(503);
+  });
+
+  it("ignores a form sent from another site", async () => {
+    const api = vi.fn();
+    vi.stubGlobal("fetch", api);
+
+    const response = await login({ email: "a@b.ec", password: "x" }, { Origin: "https://evil.example", "Sec-Fetch-Site": "cross-site", "Content-Type": "application/json" });
+
+    expect(response.status).toBe(403);
+    expect(api).not.toHaveBeenCalled();
   });
 });

@@ -12,3 +12,12 @@ export function commonName(distinguishedName: string): string {
   }
   return distinguishedName;
 }
+
+/**
+ * Nombre del titular de un certificado, para mostrarlo: su CN sin la cédula o el RUC con que
+ * algunas entidades lo empiezan ("2101137889 STIWAR SALTOS" → "STIWAR SALTOS").
+ */
+export function holderName(subject: string): string {
+  const name = commonName(subject);
+  return name.replace(/^\d{10}(\d{3})?\s+(?=\S)/, "");
+}

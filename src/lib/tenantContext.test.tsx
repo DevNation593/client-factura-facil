@@ -127,6 +127,23 @@ describe("TenantProvider", () => {
     expect(activeTenantId()).toBeNull();
   });
 
+  it("does not send a user without companies anywhere when a screen asks for data it cannot have", async () => {
+    const leave = vi.spyOn(sessionNavigation, "leave").mockImplementation(() => {});
+    stubApi({
+      "GET /tenants": () => json(200, []),
+      // Una cuenta nueva: la pantalla pide sus comprobantes antes de saber que no hay empresa.
+      "GET /documents": () => problem(403, "TENANT_FORBIDDEN"),
+    });
+    renderScreen();
+    await screen.findByText(/elija o cree una empresa/);
+
+    await api.GET("/documents");
+
+    // No había ninguna empresa en uso que perder: la pantalla ya ofrece crear una.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(leave).not.toHaveBeenCalled();
+  });
+
   it("follows the company chosen in this tab", async () => {
     const first = "11111111-1111-4111-8111-111111111111";
     const second = "22222222-2222-4222-8222-222222222222";
@@ -164,7 +181,7 @@ describe("ErrorNotice", () => {
     render(<ErrorNotice error={apiError(401, "UNAUTHENTICATED")} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("Su sesión terminó.");
-    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/auth/login?volver=%2Fclientes");
+    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/ingresar?volver=%2Fclientes");
   });
 
   it("comes back to the same search or record after signing in, not just to the same screen", () => {
@@ -172,7 +189,7 @@ describe("ErrorNotice", () => {
     route.search = "?page=3";
     render(<ErrorNotice error={apiError(401, "UNAUTHENTICATED")} />);
 
-    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/auth/login?volver=%2Fdocumentos%3Fpage%3D3");
+    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/ingresar?volver=%2Fdocumentos%3Fpage%3D3");
   });
 
   it("has no link for other errors", () => {

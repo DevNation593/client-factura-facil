@@ -59,10 +59,9 @@ describe("Certificado", () => {
     });
     expect(screen.getByLabelText("Contraseña del certificado")).toHaveValue("");
     expect((screen.getByLabelText("Archivo de la firma electrónica (.p12)") as HTMLInputElement).value).toBe("");
-    // El titular por su nombre, y el nombre completo del certificado debajo.
+    // El titular solo por su nombre, sin el resto de los datos del certificado.
     const holder = await screen.findByRole("cell", { name: /^ANA PEREZ/ });
-    expect(holder).toHaveTextContent("CN=ANA PEREZ,SERIALNUMBER=1712345678,O=SECURITY DATA,C=EC");
-    expect(screen.getByText("ANA PEREZ", { exact: true })).toBeInTheDocument();
+    expect(holder).toHaveTextContent(/^ANA PEREZ$/);
     expect(screen.getByText("En uso")).toBeInTheDocument();
     expect(api.to("GET", "/certificates")[0]?.query.get("taxpayerId")).toBe(TAXPAYER.id);
   });

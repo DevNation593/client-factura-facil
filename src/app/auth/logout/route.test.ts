@@ -1,10 +1,9 @@
 // @vitest-environment node
 import { NextRequest } from "next/server";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { sealSession, SESSION_COOKIE } from "@/server/session";
 import { fakeCookieJar, putChunks } from "@/test/cookies";
-import { startFakeIdp, type FakeIdp } from "@/test/idp";
 
 import { POST } from "./route";
 
@@ -13,26 +12,25 @@ vi.mock("next/headers", () => ({ cookies: async () => incoming.jar }));
 
 const SECRET = "un-secreto-de-pruebas-de-mas-de-treinta-y-dos-caracteres";
 const APP = "http://localhost:3000";
+const API = "http://api.interno:8080";
 
-let idp: FakeIdp;
-
-beforeAll(async () => {
-  idp = await startFakeIdp();
-  vi.stubEnv("API_BASE_URL", "http://api.interno:8080");
+beforeAll(() => {
+  vi.stubEnv("API_BASE_URL", API);
   vi.stubEnv("APP_BASE_URL", APP);
-  vi.stubEnv("OIDC_ISSUER", idp.issuer);
-  vi.stubEnv("OIDC_CLIENT_ID", "einvoice-web");
   vi.stubEnv("SESSION_SECRET", SECRET);
 });
 
-afterAll(async () => {
+afterAll(() => {
   vi.unstubAllEnvs();
-  await idp.close();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 async function signedInJar() {
   const jar = fakeCookieJar();
-  const session = { accessToken: "el-token", idToken: "el-token-de-identidad", expiresAt: Date.now() + 300_000, startedAt: Date.now(), subject: "u-1" };
+  const session = { accessToken: "el-token", refreshToken: "el-refresco", expiresAt: Date.now() + 300_000, startedAt: Date.now(), subject: "u-1" };
   putChunks(jar, SESSION_COOKIE, await sealSession(session, SECRET));
   incoming.jar = jar;
   return jar;
@@ -42,17 +40,32 @@ function logout(headers: Record<string, string>) {
   return POST(new NextRequest(`${APP}/auth/logout`, { method: "POST", headers }));
 }
 
+const SAME_ORIGIN = { "X-Requested-With": "einvoice-web", Origin: APP, "Sec-Fetch-Site": "same-origin" };
+
 describe("cierre de sesión", () => {
-  it("ends the provider's session too, without asking the user to confirm there", async () => {
+  it("closes the session in the API too and goes back to the sign-in screen", async () => {
+    const api = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", api);
     const jar = await signedInJar();
 
-    const response = await logout({ Origin: APP, "Sec-Fetch-Site": "same-origin" });
+    const response = await logout(SAME_ORIGIN);
 
-    const destination = new URL(((await response.json()) as { redirectTo: string }).redirectTo);
-    expect(destination.origin + destination.pathname).toBe(`${idp.issuer}/logout`);
-    // Con el token de identidad el proveedor sabe qué sesión cerrar y no pregunta.
-    expect(destination.searchParams.get("id_token_hint")).toBe("el-token-de-identidad");
-    expect(destination.searchParams.get("post_logout_redirect_uri")).toBe(`${APP}/ingresar`);
+    expect(await response.json()).toEqual({ redirectTo: "/ingresar" });
+    expect(jar.values.size).toBe(0);
+    const [url, init] = api.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(String(url)).toBe(`${API}/api/v1/auth/logout`);
+    expect(JSON.parse(String(init.body))).toEqual({ refreshToken: "el-refresco" });
+  });
+
+  it("signs out here even when the API does not answer", async () => {
+    vi.stubGlobal("fetch", async () => {
+      throw new TypeError("fetch failed");
+    });
+    const jar = await signedInJar();
+
+    const response = await logout(SAME_ORIGIN);
+
+    expect(response.status).toBe(200);
     expect(jar.values.size).toBe(0);
   });
 
