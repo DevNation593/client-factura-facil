@@ -42,6 +42,10 @@ function routes(issue: Handler): Parameters<typeof stubApi>[0] {
       const items = productSearch ? productSearch(call.query.get("q") ?? "") : [SERVICE, BOOK];
       return json(200, { items, page: 0, size: 20, total: items.length });
     },
+    "GET /products/:id": (call) => {
+      const product = [SERVICE, BOOK].find((item) => call.path.endsWith(item.id));
+      return product ? json(200, product) : problem(404, "NOT_FOUND");
+    },
     "GET /catalogs/tax-rates": () =>
       json(200, [
         // Las descripciones del catálogo real (ficha técnica, tabla 17) no llevan la palabra IVA.
@@ -60,8 +64,10 @@ function routes(issue: Handler): Parameters<typeof stubApi>[0] {
 
 /** Rellena una factura de 2 servicios (20.00 + 3.00 de IVA) a María Pérez. */
 async function fillInvoice() {
-  await userEvent.selectOptions(await screen.findByLabelText("Cliente"), await screen.findByRole("option", { name: /María Pérez/ }));
-  await userEvent.selectOptions(screen.getByLabelText("Producto de la línea 1"), await screen.findByRole("option", { name: /Servicio de consultoría/ }));
+  await userEvent.click(await screen.findByRole("combobox", { name: "Cliente" }));
+  await userEvent.click(await screen.findByRole("option", { name: /María Pérez/ }));
+  await userEvent.click(screen.getByRole("combobox", { name: "Producto de la línea 1" }));
+  await userEvent.click(await screen.findByRole("option", { name: /Servicio de consultoría/ }));
   const quantity = screen.getByLabelText("Cantidad de la línea 1");
   await userEvent.clear(quantity);
   await userEvent.type(quantity, "2");
@@ -84,7 +90,8 @@ describe("Nueva factura", () => {
     expect(screen.getByRole("row", { name: "Subtotal 15% 20.00" })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Añadir línea" }));
-    await userEvent.selectOptions(screen.getByLabelText("Producto de la línea 2"), screen.getAllByRole("option", { name: /Libro/ })[1]!);
+    await userEvent.click(screen.getByRole("combobox", { name: "Producto de la línea 2" }));
+    await userEvent.click(await screen.findByRole("option", { name: /Libro/ }));
     const quantity = screen.getByLabelText("Cantidad de la línea 2");
     await userEvent.clear(quantity);
     await userEvent.type(quantity, "1.5");
@@ -232,23 +239,118 @@ describe("Nueva factura", () => {
     const stub = api(() => json(202, ISSUED));
     stubProducts(stub, (q) => (q === "tornillo" ? [SCREW] : [SERVICE, BOOK]));
     renderWithTenant(<NuevaFacturaPage />);
-    await userEvent.selectOptions(await screen.findByLabelText("Cliente"), await screen.findByRole("option", { name: /María Pérez/ }));
+    await userEvent.click(await screen.findByRole("combobox", { name: "Cliente" }));
+    await userEvent.click(await screen.findByRole("option", { name: /María Pérez/ }));
     expect(screen.queryByRole("option", { name: /Tornillo/ })).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByLabelText("Buscar producto"), "tornillo");
-    await userEvent.selectOptions(screen.getByLabelText("Producto de la línea 1"), await screen.findByRole("option", { name: /Tornillo hexagonal/ }));
+    const picker = screen.getByRole("combobox", { name: "Producto de la línea 1" });
+    await userEvent.click(picker);
+    await userEvent.type(picker, "tornillo");
+    await userEvent.click(await screen.findByRole("option", { name: /Tornillo hexagonal/ }));
 
     expect(screen.getByLabelText("Precio unitario de la línea 1")).toHaveValue("0.25");
     expect(stub.to("GET", "/products").at(-1)?.query.get("q")).toBe("tornillo");
-    // Al buscar otra cosa, la línea conserva su producto y su cálculo.
-    await userEvent.clear(screen.getByLabelText("Buscar producto"));
+    // Al abrir de nuevo el selector, la línea conserva su producto y su cálculo.
+    await userEvent.click(picker);
     await screen.findByRole("option", { name: /Servicio de consultoría/ });
-    expect(screen.getByLabelText("Producto de la línea 1")).toHaveDisplayValue(/Tornillo hexagonal/);
+    await userEvent.keyboard("{Escape}");
+    expect(picker).toHaveValue("Tornillo hexagonal (TOR-900)");
     await waitFor(() => expect(screen.getByTestId("total")).toHaveTextContent("0.29"));
 
     await userEvent.click(screen.getByRole("button", { name: "Emitir factura" }));
     await waitFor(() => expect(stub.to("POST", "/invoices")).toHaveLength(1));
     expect((stub.to("POST", "/invoices")[0]?.body as { lines: { productId: string }[] }).lines[0]?.productId).toBe(SCREW.id);
+  });
+
+  it("searches for a customer inside the chooser", async () => {
+    const stub = stubApi({
+      ...routes(() => json(202, ISSUED)),
+      "GET /customers": (call) => {
+        const items = call.query.get("q") === "mar" ? [CUSTOMER] : [];
+        return json(200, { items, page: 0, size: 20, total: items.length });
+      },
+    });
+    renderWithTenant(<NuevaFacturaPage />);
+    const picker = await screen.findByRole("combobox", { name: "Cliente" });
+    expect(screen.queryByLabelText("Buscar cliente")).not.toBeInTheDocument();
+    await userEvent.click(picker);
+    await userEvent.type(picker, "mar");
+    await userEvent.click(await screen.findByRole("option", { name: /María Pérez/ }));
+
+    expect(picker).toHaveValue("María Pérez (1712345678)");
+    expect(stub.to("GET", "/customers").at(-1)?.query.get("q")).toBe("mar");
+  });
+
+  it("searches independently inside each product chooser", async () => {
+    const stub = api(() => json(202, ISSUED));
+    stubProducts(stub, (q) => q === "lib" ? [BOOK] : [SERVICE]);
+    renderWithTenant(<NuevaFacturaPage />);
+    const first = await screen.findByRole("combobox", { name: "Producto de la línea 1" });
+    await userEvent.click(first);
+    await userEvent.click(await screen.findByRole("option", { name: /Servicio de consultoría/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Añadir línea" }));
+    const second = screen.getByRole("combobox", { name: "Producto de la línea 2" });
+    await userEvent.click(second);
+    await userEvent.type(second, "lib");
+    await userEvent.click(await screen.findByRole("option", { name: /Libro/ }));
+
+    expect(first).toHaveValue("Servicio de consultoría (SRV-001)");
+    expect(second).toHaveValue("Libro (LIB-001)");
+    expect(stub.to("GET", "/products").at(-1)?.query.get("q")).toBe("lib");
+    expect(screen.queryByLabelText("Buscar producto")).not.toBeInTheDocument();
+  });
+
+  it("chooses a product with the keyboard inside the same control", async () => {
+    api(() => json(202, ISSUED));
+    renderWithTenant(<NuevaFacturaPage />);
+    const picker = await screen.findByRole("combobox", { name: "Producto de la línea 1" });
+    await userEvent.click(picker);
+    await screen.findByRole("option", { name: /Servicio de consultoría/ });
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+
+    expect(picker).toHaveValue("Servicio de consultoría (SRV-001)");
+    expect(screen.getByLabelText("Precio unitario de la línea 1")).toHaveValue("10.00");
+  });
+
+  it("does not issue the invoice when Enter is pressed while searching", async () => {
+    const stub = api(() => json(202, ISSUED));
+    renderWithTenant(<NuevaFacturaPage />);
+    await fillInvoice();
+    const picker = screen.getByRole("combobox", { name: "Producto de la línea 1" });
+    await userEvent.click(picker);
+    await userEvent.type(picker, "otro producto");
+    await userEvent.keyboard("{Enter}");
+
+    expect(stub.to("POST", "/invoices")).toHaveLength(0);
+  });
+
+  it("clears the chosen customer when another customer search starts", async () => {
+    const stub = api(() => json(202, ISSUED));
+    renderWithTenant(<NuevaFacturaPage />);
+    await fillInvoice();
+    const picker = screen.getByRole("combobox", { name: "Cliente" });
+    await userEvent.click(picker);
+    await userEvent.type(picker, "otra persona");
+    await userEvent.tab();
+
+    expect(screen.getByRole("button", { name: "Emitir factura" })).toBeDisabled();
+    expect(picker).toHaveValue("");
+    expect(stub.to("POST", "/invoices")).toHaveLength(0);
+  });
+
+  it("clears the chosen product and its price when another product search starts", async () => {
+    const stub = api(() => json(202, ISSUED));
+    renderWithTenant(<NuevaFacturaPage />);
+    await fillInvoice();
+    const picker = screen.getByRole("combobox", { name: "Producto de la línea 1" });
+    await userEvent.click(picker);
+    await userEvent.type(picker, "otro servicio");
+    await userEvent.tab();
+
+    expect(screen.getByRole("button", { name: "Emitir factura" })).toBeDisabled();
+    expect(picker).toHaveValue("");
+    expect(screen.getByLabelText("Precio unitario de la línea 1")).toHaveValue("");
+    expect(stub.to("POST", "/invoices")).toHaveLength(0);
   });
 
   it("shows the product of a resumed draft even when the first results do not include it", async () => {
@@ -264,7 +366,7 @@ describe("Nueva factura", () => {
     stubApi({ ...routes(() => json(202, ISSUED)), "GET /products/:id": () => json(200, SCREW) });
     renderWithTenant(<NuevaFacturaPage />);
 
-    await waitFor(() => expect(screen.getByLabelText("Producto de la línea 1")).toHaveDisplayValue(/Tornillo hexagonal/));
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Producto de la línea 1" })).toHaveValue("Tornillo hexagonal (TOR-900)"));
     await waitFor(() => expect(screen.getByTestId("total")).toHaveTextContent("28.75"));
     expect(screen.getByRole("button", { name: "Emitir factura" })).toBeEnabled();
   });
@@ -323,6 +425,7 @@ describe("Nueva factura", () => {
     stubApi({ ...routes(() => json(202, ISSUED)), "GET /customers": () => problem(401, "UNAUTHENTICATED") });
     renderWithTenant(<NuevaFacturaPage />);
 
+    await userEvent.click(await screen.findByRole("combobox", { name: "Cliente" }));
     const link = await screen.findByRole("link", { name: "Iniciar sesión" });
     expect(link).toHaveAttribute("href", `/ingresar?volver=${encodeURIComponent(`/facturas/nueva?borrador=${draft.id}`)}`);
   });

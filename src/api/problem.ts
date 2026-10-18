@@ -81,6 +81,7 @@ const MESSAGES: Record<string, string> = {
   DELIVERY_DISABLED: "El envío de comprobantes por correo no está habilitado en la plataforma.",
   DELIVERY_LIMIT_REACHED: "Este comprobante ya alcanzó el máximo de envíos por correo.",
   DELIVERY_RECIPIENT_MISSING: "El comprobante no tiene correo del cliente: indique una dirección.",
+  CATALOG_CHANGED: "Este registro cambió. Recargue la lista e inténtelo de nuevo.",
 };
 
 /** Mensaje en español para mostrar al usuario. Nunca incluye datos técnicos salvo el código de soporte. */

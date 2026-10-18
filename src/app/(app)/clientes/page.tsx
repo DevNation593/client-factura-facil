@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 
 import { api, unwrap } from "@/api/client";
 import { ApiError } from "@/api/problem";
+import type { components } from "@/api/schema";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
@@ -16,6 +17,7 @@ import { useDebounced } from "@/lib/useDebounced";
 const PAGE_SIZE = 20;
 
 const EMPTY = { idType: "", idNumber: "", name: "", email: "", address: "", phone: "" };
+type Customer = components["schemas"]["Customer"];
 
 /** Clientes de la empresa: a quién se le factura. */
 export default function ClientesPage() {
@@ -29,9 +31,11 @@ export default function ClientesPage() {
   );
   const idTypes = useApi(() => unwrap(api.GET("/catalogs/identification-types")), []);
   const [form, setForm] = useState(EMPTY);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | undefined>(undefined);
   const [error, setError] = useState<unknown>(undefined);
-  const [created, setCreated] = useState<string | undefined>(undefined);
+  const [notice, setNotice] = useState<string | undefined>(undefined);
 
   if (!active) {
     return <NoTenant />;
@@ -41,6 +45,53 @@ export default function ClientesPage() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
+  function edit(customer: Customer) {
+    setEditingId(customer.id);
+    setForm({
+      idType: customer.idType,
+      idNumber: customer.idNumber,
+      name: customer.name,
+      email: customer.email ?? "",
+      address: customer.address ?? "",
+      phone: customer.phone ?? "",
+    });
+    setError(undefined);
+    setNotice(undefined);
+  }
+
+  function cancelEdit() {
+    setEditingId(undefined);
+    setForm(EMPTY);
+    setError(undefined);
+  }
+
+  async function remove(customer: Customer) {
+    if (deletingId || !window.confirm(`¿Eliminar a ${customer.name}? Sus comprobantes anteriores se conservarán.`)) {
+      return;
+    }
+    setDeletingId(customer.id);
+    setError(undefined);
+    setNotice(undefined);
+    try {
+      await unwrap(api.DELETE("/customers/{id}", { params: { path: { id: customer.id } } }));
+      if (editingId === customer.id) {
+        cancelEdit();
+      }
+      setNotice(`Cliente eliminado: ${customer.name}.`);
+      if (page > 0 && customers.data?.items.length === 1) {
+        setPage(page - 1);
+      } else {
+        await customers.reload({ quiet: true });
+      }
+    }
+    catch (problem) {
+      setError(problem);
+    }
+    finally {
+      setDeletingId(undefined);
+    }
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (saving) {
@@ -48,22 +99,22 @@ export default function ClientesPage() {
     }
     setSaving(true);
     setError(undefined);
-    setCreated(undefined);
+    setNotice(undefined);
     try {
-      const customer = await unwrap(
-        api.POST("/customers", {
-          body: {
-            idType: form.idType || (idTypes.data?.[0]?.code ?? ""),
-            idNumber: form.idNumber.trim(),
-            name: form.name.trim(),
-            email: form.email.trim() || null,
-            address: form.address.trim() || null,
-            phone: form.phone.trim() || null,
-          },
-        }),
-      );
-      setCreated(customer.name);
+      const body = {
+        idType: form.idType || (idTypes.data?.[0]?.code ?? ""),
+        idNumber: form.idNumber.trim(),
+        name: form.name.trim(),
+        email: form.email.trim() || null,
+        address: form.address.trim() || null,
+        phone: form.phone.trim() || null,
+      };
+      const customer = editingId
+        ? await unwrap(api.PUT("/customers/{id}", { params: { path: { id: editingId } }, body }))
+        : await unwrap(api.POST("/customers", { body }));
+      setNotice(`Cliente ${editingId ? "actualizado" : "registrado"}: ${customer.name}.`);
       setForm(EMPTY);
+      setEditingId(undefined);
       await customers.reload({ quiet: true });
     }
     catch (problem) {
@@ -112,6 +163,7 @@ export default function ClientesPage() {
                 <th scope="col">Identificación</th>
                 <th scope="col">Nombre</th>
                 <th scope="col">Correo</th>
+                {canBill(active) ? <th scope="col">Acciones</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -120,6 +172,18 @@ export default function ClientesPage() {
                   <td className="code">{customer.idNumber}</td>
                   <td>{customer.name}</td>
                   <td>{customer.email ?? "Sin correo"}</td>
+                  {canBill(active) ? (
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" className="btn-link" onClick={() => edit(customer)} aria-label={`Editar a ${customer.name}`}>
+                          Editar
+                        </button>
+                        <button type="button" className="btn-link" onClick={() => void remove(customer)} disabled={deletingId === customer.id} aria-label={`Eliminar a ${customer.name}`}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -130,7 +194,7 @@ export default function ClientesPage() {
 
       {canBill(active) ? (
         <>
-          <h2>Registrar un cliente</h2>
+          <h2>{editingId ? "Editar cliente" : "Registrar un cliente"}</h2>
           <p className="lead">Con el correo, el cliente recibe la factura y su RIDE en cuanto el SRI la autoriza.</p>
           <ErrorNotice error={idTypes.error} />
           <form className="form" onSubmit={submit} noValidate>
@@ -160,11 +224,12 @@ export default function ClientesPage() {
             </Field>
             <div className="actions wide">
               <button type="submit" className="btn btn-primary" disabled={saving}>
-                Registrar cliente
+                {editingId ? "Guardar cambios" : "Registrar cliente"}
               </button>
+              {editingId ? <button type="button" className="btn" onClick={cancelEdit}>Cancelar edición</button> : null}
             </div>
           </form>
-          {created ? <Notice kind="success">Cliente registrado: {created}.</Notice> : null}
+          {notice ? <Notice kind="success">{notice}</Notice> : null}
           {error !== undefined && idNumberError === undefined ? <ErrorNotice error={error} /> : null}
         </>
       ) : null}
