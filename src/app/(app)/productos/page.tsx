@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 
 import { api, unwrap } from "@/api/client";
 import { ApiError } from "@/api/problem";
+import type { components } from "@/api/schema";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
@@ -18,6 +19,7 @@ const PAGE_SIZE = 20;
 const SKU = /^[A-Za-z0-9._-]{1,25}$/;
 
 const EMPTY = { sku: "", name: "", unitPrice: "", ivaRateCode: "" };
+type Product = components["schemas"]["Product"];
 
 /** Productos y servicios que se facturan, cada uno con su precio y su tarifa de IVA. */
 export default function ProductosPage() {
@@ -31,10 +33,12 @@ export default function ProductosPage() {
   );
   const rates = useApi(() => unwrap(api.GET("/catalogs/tax-rates")), []);
   const [form, setForm] = useState(EMPTY);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | undefined>(undefined);
   const [error, setError] = useState<unknown>(undefined);
   const [local, setLocal] = useState<{ sku?: string; unitPrice?: string; ivaRateCode?: string }>({});
-  const [created, setCreated] = useState<string | undefined>(undefined);
+  const [notice, setNotice] = useState<string | undefined>(undefined);
 
   if (!active) {
     return <NoTenant />;
@@ -42,6 +46,48 @@ export default function ProductosPage() {
 
   function set(name: keyof typeof EMPTY, value: string) {
     setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  function edit(product: Product) {
+    setEditingId(product.id);
+    setForm({ sku: product.sku, name: product.name, unitPrice: formatUnitPrice(product.unitPrice), ivaRateCode: product.ivaRateCode });
+    setLocal({});
+    setError(undefined);
+    setNotice(undefined);
+  }
+
+  function cancelEdit() {
+    setEditingId(undefined);
+    setForm(EMPTY);
+    setLocal({});
+    setError(undefined);
+  }
+
+  async function remove(product: Product) {
+    if (deletingId || !window.confirm(`¿Eliminar ${product.name}? Sus comprobantes anteriores se conservarán.`)) {
+      return;
+    }
+    setDeletingId(product.id);
+    setError(undefined);
+    setNotice(undefined);
+    try {
+      await unwrap(api.DELETE("/products/{id}", { params: { path: { id: product.id } } }));
+      if (editingId === product.id) {
+        cancelEdit();
+      }
+      setNotice(`Producto eliminado: ${product.name}.`);
+      if (page > 0 && products.data?.items.length === 1) {
+        setPage(page - 1);
+      } else {
+        await products.reload({ quiet: true });
+      }
+    }
+    catch (problem) {
+      setError(problem);
+    }
+    finally {
+      setDeletingId(undefined);
+    }
   }
 
   const rateLabel = (code: string) => rates.data?.find((rate) => rate.rateCode === code)?.description ?? code;
@@ -69,20 +115,20 @@ export default function ProductosPage() {
     }
     setSaving(true);
     setError(undefined);
-    setCreated(undefined);
+    setNotice(undefined);
     try {
-      const product = await unwrap(
-        api.POST("/products", {
-          body: {
-            sku: form.sku,
-            name: form.name.trim(),
-            unitPrice: format(price, Math.max(2, price.scale)),
-            ivaRateCode: form.ivaRateCode,
-          },
-        }),
-      );
-      setCreated(product.name);
+      const body = {
+        sku: form.sku,
+        name: form.name.trim(),
+        unitPrice: format(price, Math.max(2, price.scale)),
+        ivaRateCode: form.ivaRateCode,
+      };
+      const product = editingId
+        ? await unwrap(api.PUT("/products/{id}", { params: { path: { id: editingId } }, body }))
+        : await unwrap(api.POST("/products", { body }));
+      setNotice(`Producto ${editingId ? "actualizado" : "registrado"}: ${product.name}.`);
       setForm(EMPTY);
+      setEditingId(undefined);
       await products.reload({ quiet: true });
     }
     catch (problem) {
@@ -130,6 +176,7 @@ export default function ProductosPage() {
                   Precio unitario
                 </th>
                 <th scope="col">IVA</th>
+                {canWrite(active) ? <th scope="col">Acciones</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -139,6 +186,18 @@ export default function ProductosPage() {
                   <td>{product.name}</td>
                   <td className="num">{formatUnitPrice(product.unitPrice)}</td>
                   <td>{rateLabel(product.ivaRateCode)}</td>
+                  {canWrite(active) ? (
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" className="btn-link" onClick={() => edit(product)} aria-label={`Editar a ${product.name}`}>
+                          Editar
+                        </button>
+                        <button type="button" className="btn-link" onClick={() => void remove(product)} disabled={deletingId === product.id} aria-label={`Eliminar a ${product.name}`}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -149,7 +208,7 @@ export default function ProductosPage() {
 
       {canWrite(active) ? (
         <>
-          <h2>Registrar un producto</h2>
+          <h2>{editingId ? "Editar producto" : "Registrar un producto"}</h2>
           <ErrorNotice error={rates.error} />
           <form className="form" onSubmit={submit} noValidate>
             <Field label="Código" error={skuError}>
@@ -173,11 +232,12 @@ export default function ProductosPage() {
             </Field>
             <div className="actions wide">
               <button type="submit" className="btn btn-primary" disabled={saving}>
-                Registrar producto
+                {editingId ? "Guardar cambios" : "Registrar producto"}
               </button>
+              {editingId ? <button type="button" className="btn" onClick={cancelEdit}>Cancelar edición</button> : null}
             </div>
           </form>
-          {created ? <Notice kind="success">Producto registrado: {created}.</Notice> : null}
+          {notice ? <Notice kind="success">{notice}</Notice> : null}
           {error !== undefined && code !== "PRODUCT_SKU_TAKEN" ? <ErrorNotice error={error} /> : null}
         </>
       ) : null}

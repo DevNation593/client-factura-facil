@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { json, problem, stubApi } from "@/test/api";
 import { renderWithTenant } from "@/test/render";
@@ -137,5 +137,46 @@ describe("Productos", () => {
 
     expect(await screen.findByText("Servicio de consultoría")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Registrar producto" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Editar a/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Eliminar a/ })).not.toBeInTheDocument();
+  });
+
+  it("edits a product in the list", async () => {
+    let stored = PRODUCT;
+    const api = stubApi({
+      "GET /catalogs/tax-rates": () => json(200, RATES),
+      "GET /products": () => page([stored]),
+      "PUT /products/:id": (call) => {
+        stored = { ...stored, ...(call.body as typeof PRODUCT) };
+        return json(200, stored);
+      },
+    });
+    renderWithTenant(<ProductosPage />);
+    await userEvent.click(await screen.findByRole("button", { name: "Editar a Servicio de consultoría" }));
+    expect(screen.getByLabelText("Código")).toHaveValue("SRV-001");
+    await userEvent.clear(screen.getByLabelText("Precio unitario sin IVA"));
+    await userEvent.type(screen.getByLabelText("Precio unitario sin IVA"), "12.75");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(await screen.findByRole("cell", { name: "12.75" })).toBeInTheDocument();
+    expect(api.to("PUT", `/products/${PRODUCT.id}`)[0]?.body).toMatchObject({ sku: "SRV-001", unitPrice: "12.75" });
+  });
+
+  it("asks before deleting a product and removes it from the list", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    let stored: unknown[] = [PRODUCT];
+    const api = stubApi({
+      "GET /catalogs/tax-rates": () => json(200, RATES),
+      "GET /products": () => page(stored),
+      "DELETE /products/:id": () => {
+        stored = [];
+        return new Response(null, { status: 204 });
+      },
+    });
+    renderWithTenant(<ProductosPage />);
+    await userEvent.click(await screen.findByRole("button", { name: "Eliminar a Servicio de consultoría" }));
+    expect(await screen.findByText("Aún no hay productos.")).toBeInTheDocument();
+    expect(api.to("DELETE", `/products/${PRODUCT.id}`)).toHaveLength(1);
+    confirm.mockRestore();
   });
 });

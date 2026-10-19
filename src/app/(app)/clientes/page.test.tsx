@@ -1,6 +1,6 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { json, problem, stubApi } from "@/test/api";
 import { renderWithTenant } from "@/test/render";
@@ -118,5 +118,49 @@ describe("Clientes", () => {
 
     expect(await screen.findByText("Cliente 1")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Registrar cliente" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Editar a/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Eliminar a/ })).not.toBeInTheDocument();
+  });
+
+  it("edits a customer in the list", async () => {
+    let stored = { ...customer(1), address: "Quito", phone: "022345678" };
+    const api = stubApi({
+      "GET /catalogs/identification-types": () => json(200, TYPES),
+      "GET /customers": () => page([stored]),
+      "PUT /customers/:id": (call) => {
+        stored = { ...stored, ...(call.body as typeof stored) };
+        return json(200, stored);
+      },
+    });
+    renderWithTenant(<ClientesPage />);
+    await userEvent.click(await screen.findByRole("button", { name: "Editar a Cliente 1" }));
+    expect(screen.getByLabelText("Número de identificación")).toHaveValue("171234561");
+    await userEvent.clear(screen.getByLabelText("Nombre o razón social"));
+    await userEvent.type(screen.getByLabelText("Nombre o razón social"), "Cliente actualizado");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(await screen.findByRole("cell", { name: "Cliente actualizado" })).toBeInTheDocument();
+    expect(api.to("PUT", `/customers/${stored.id}`)[0]?.body).toMatchObject({ name: "Cliente actualizado", idNumber: "171234561" });
+  });
+
+  it("asks before deleting a customer and removes it from the list", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    let stored: unknown[] = [customer(1)];
+    const api = stubApi({
+      "GET /catalogs/identification-types": () => json(200, TYPES),
+      "GET /customers": () => page(stored),
+      "DELETE /customers/:id": () => {
+        stored = [];
+        return new Response(null, { status: 204 });
+      },
+    });
+    renderWithTenant(<ClientesPage />);
+    await userEvent.click(await screen.findByRole("button", { name: "Eliminar a Cliente 1" }));
+    expect(api.to("DELETE", `/customers/${customer(1).id}`)).toHaveLength(0);
+    confirm.mockReturnValue(true);
+    await userEvent.click(screen.getByRole("button", { name: "Eliminar a Cliente 1" }));
+    expect(await screen.findByText(/Aún no hay clientes/)).toBeInTheDocument();
+    expect(api.to("DELETE", `/customers/${customer(1).id}`)).toHaveLength(1);
+    confirm.mockRestore();
   });
 });
