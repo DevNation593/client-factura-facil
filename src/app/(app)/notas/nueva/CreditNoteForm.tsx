@@ -7,19 +7,19 @@ import { useId, useRef, useState, type FormEvent } from "react";
 import { api, unwrap } from "@/api/client";
 import { ApiError } from "@/api/problem";
 import type { components } from "@/api/schema";
-import { CatalogPicker } from "@/components/CatalogPicker";
 import { Field } from "@/components/Field";
 import { ErrorNotice, Notice } from "@/components/Notice";
 import { PointSelect } from "@/components/PointSelect";
 import { PreviewTotals } from "@/components/PreviewTotals";
 import { emptyProductLine, ProductLines, type ProductLine } from "@/components/ProductLines";
 import { availableBalance, prorateDiscount } from "@/lib/creditNote";
-import { formatIssueDate } from "@/lib/dates";
 import { compare, formatUnitPrice, parse, plainDecimal } from "@/lib/decimal";
 import { normalizeInvoiceNumber } from "@/lib/invoiceNumber";
 import { previewInvoice } from "@/lib/invoicePreview";
 import { loadIssuer, type Point } from "@/lib/issuer";
 import { useApi } from "@/lib/useApi";
+
+import { AuthorizedInvoice, emptyManualInvoice, InvoiceFacts, ManualInvoiceFields, ManualInvoiceNotice, type ManualInvoice } from "./NoteSource";
 
 type Document = components["schemas"]["Document"];
 type Product = components["schemas"]["Product"];
@@ -92,24 +92,7 @@ export function CreditNoteForm({ tenantId, invoiceId }: { tenantId: string; invo
 }
 
 function InvoiceCreditNote({ tenantId, invoiceId }: { tenantId: string; invoiceId: string }) {
-  const invoice = useApi(() => unwrap(api.GET("/documents/{id}", { params: { path: { id: invoiceId } } })), [tenantId, invoiceId]);
-  if (invoice.error) {
-    return <ErrorNotice error={invoice.error} />;
-  }
-  if (!invoice.data) {
-    return <p className="lead">Cargando la factura…</p>;
-  }
-  if (invoice.data.documentType !== "01") {
-    return <Notice kind="warning">El comprobante elegido no es una factura. Elija una factura desde los <Link href="/documentos">comprobantes</Link>.</Notice>;
-  }
-  if (invoice.data.state !== "AUTHORIZED") {
-    return (
-      <Notice kind="warning">
-        Solo se puede emitir una nota sobre una factura autorizada. <Link href={`/documentos/${invoice.data.id}`}>Vea el estado de la factura {invoice.data.number}</Link>.
-      </Notice>
-    );
-  }
-  return <Editor tenantId={tenantId} invoice={invoice.data} />;
+  return <AuthorizedInvoice tenantId={tenantId} invoiceId={invoiceId}>{(invoice) => <Editor tenantId={tenantId} invoice={invoice} />}</AuthorizedInvoice>;
 }
 
 function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | null }) {
@@ -121,10 +104,8 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
   // Con factura de la plataforma.
   const [lines, setLines] = useState<CreditLine[]>(() => (invoice ? creditLines(invoice) : []));
   // Con factura escrita a mano.
-  const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [invoiceDate, setInvoiceDate] = useState("");
-  const [customerId, setCustomerId] = useState("");
-  const [customerLabel, setCustomerLabel] = useState("");
+  const [manual, setManual] = useState<ManualInvoice>(emptyManualInvoice);
+  const { number: invoiceNumber, date: invoiceDate, customerId } = manual;
   const [productLines, setProductLines] = useState<ProductLine[]>(() => [emptyProductLine()]);
   const [known, setKnown] = useState<Map<string, Product>>(() => new Map());
 
@@ -138,11 +119,6 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
 
   const issuer = useApi(() => loadIssuer(invoice?.taxpayerId), [tenantId, invoice?.taxpayerId ?? null]);
   const rates = useApi(() => unwrap(api.GET("/catalogs/tax-rates")), []);
-
-  async function searchCustomers(query: string) {
-    const page = await unwrap(api.GET("/customers", { params: { query: { size: 20, ...(query ? { q: query } : {}) } } }));
-    return page.items;
-  }
 
   function changeLine(index: number, patch: Partial<CreditLine>) {
     setLines((current) => current.map((line, position) => (position === index ? { ...line, ...patch } : line)));
@@ -291,69 +267,18 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
 
       {invoice ? (
         <>
-          <dl className="facts">
-            <dt>Modifica a</dt>
-            <dd>
-              <Link href={`/documentos/${invoice.id}`}>
-                Factura {invoice.number} del {formatIssueDate(invoice.issueDate)}
-              </Link>
-            </dd>
-            <dt>Cliente</dt>
-            <dd>
-              {invoice.customer.name} ({invoice.customer.idNumber})
-            </dd>
-          </dl>
+          <InvoiceFacts invoice={invoice} />
           <p className="lead">Saldo disponible ${balance}</p>
         </>
       ) : (
-        <Notice>
-          ¿La factura se emitió aquí? <Link href="/documentos">Ábrela desde Comprobantes</Link>
-        </Notice>
+        <ManualInvoiceNotice />
       )}
 
       <div className="form">
         <Field label="Punto de emisión" hint="El número de la nota se asigna al emitirla.">
           <PointSelect points={points} value={point} onChange={setChosenPoint} />
         </Field>
-        {invoice ? null : (
-          <>
-            <Field
-              label="Número de la factura"
-              hint="EEE-PPP-SSSSSSSSS: establecimiento, punto de emisión y secuencial. Puede escribir los 15 dígitos sin guiones."
-              error={invoiceNumber.trim() !== "" && !numberValid ? "Escriba el número completo, por ejemplo 001-001-000000123." : undefined}
-            >
-              {/* Teclado numérico en el teléfono: no tiene guion, así que se aceptan los 15 dígitos y al salir se muestran con guiones. */}
-              <input
-                inputMode="numeric"
-                placeholder="001-001-000000123"
-                value={invoiceNumber}
-                onChange={(event) => setInvoiceNumber(event.target.value)}
-                onBlur={() => setInvoiceNumber((current) => normalizeInvoiceNumber(current) ?? current)}
-              />
-            </Field>
-            <Field label="Fecha de la factura">
-              <input type="date" value={invoiceDate} onChange={(event) => setInvoiceDate(event.target.value)} />
-            </Field>
-            <Field label="Cliente" className="wide">
-              <CatalogPicker
-                tenantId={tenantId}
-                value={customerId}
-                selectedLabel={customerLabel}
-                placeholder="Elija o busque un cliente"
-                load={searchCustomers}
-                optionLabel={(customer) => `${customer.name} (${customer.idNumber})`}
-                onSearchStart={() => {
-                  setCustomerLabel("");
-                  setCustomerId("");
-                }}
-                onSelect={(customer) => {
-                  setCustomerLabel(`${customer.name} (${customer.idNumber})`);
-                  setCustomerId(customer.id);
-                }}
-              />
-            </Field>
-          </>
-        )}
+        {invoice ? null : <ManualInvoiceFields tenantId={tenantId} value={manual} onChange={setManual} />}
         <Field label="Motivo" className="wide" hint="La razón de la modificación, como aparecerá en la nota.">
           <input maxLength={300} value={reason} onChange={(event) => setReason(event.target.value.replace(/[\r\n]+/g, " "))} />
         </Field>

@@ -35,7 +35,6 @@ describe("Nueva nota", () => {
     expect(screen.getByRole("link", { name: "Nota de débito" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Nota de crédito" })).toHaveAttribute("href", `/notas/nueva?tipo=credito&factura=${INVOICE_ID}`);
     expect(screen.getByRole("link", { name: "Nota de débito" })).toHaveAttribute("href", `/notas/nueva?tipo=debito&factura=${INVOICE_ID}`);
-    expect(screen.getByText(/Próximamente/)).toBeInTheDocument();
   });
 
   it("is not offered to a role that cannot issue", () => {

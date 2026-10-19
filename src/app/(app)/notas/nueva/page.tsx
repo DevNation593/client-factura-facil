@@ -8,6 +8,7 @@ import { Notice } from "@/components/Notice";
 import { canBill, useTenant } from "@/lib/tenantContext";
 
 import { CreditNoteForm } from "./CreditNoteForm";
+import { DebitNoteForm } from "./DebitNoteForm";
 
 type NoteType = "credito" | "debito";
 
@@ -52,7 +53,7 @@ export default function NuevaNotaPage() {
       {type === "credito" ? (
         <CreditNoteForm key={`${active.id}:${invoiceId ?? ""}`} tenantId={active.id} invoiceId={invoiceId} />
       ) : (
-        <Notice>Próximamente: la nota de débito se podrá emitir desde aquí.</Notice>
+        <DebitNoteForm key={`${active.id}:${invoiceId ?? ""}`} tenantId={active.id} invoiceId={invoiceId} />
       )}
     </>
   );
