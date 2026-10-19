@@ -1,15 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 
 import { api, unwrap } from "@/api/client";
-import { ApiError } from "@/api/problem";
 import type { components } from "@/api/schema";
 import { Field } from "@/components/Field";
 import { ErrorNotice, Notice } from "@/components/Notice";
-import { PointSelect } from "@/components/PointSelect";
 import { PreviewTotals } from "@/components/PreviewTotals";
 import { emptyProductLine, ProductLines, type ProductLine } from "@/components/ProductLines";
 import { availableBalance, prorateDiscount } from "@/lib/creditNote";
@@ -20,6 +17,7 @@ import { loadIssuer, type Point } from "@/lib/issuer";
 import { useApi } from "@/lib/useApi";
 
 import { AuthorizedInvoice, emptyManualInvoice, InvoiceFacts, ManualInvoiceFields, ManualInvoiceNotice, type ManualInvoice } from "./NoteSource";
+import { IssuerNotices, NoteActions, NoteProblem, PointField, selectedPoint, useNoteEmit } from "./NoteShared";
 
 type Document = components["schemas"]["Document"];
 type Product = components["schemas"]["Product"];
@@ -97,8 +95,7 @@ function InvoiceCreditNote({ tenantId, invoiceId }: { tenantId: string; invoiceI
 
 function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | null }) {
   const router = useRouter();
-  // La clave nace con el formulario: un doble clic o un reintento tras un fallo emiten la misma nota.
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const note = useNoteEmit((id) => router.push(`/documentos/${id}`));
   const [chosenPoint, setChosenPoint] = useState<Point | undefined>(undefined);
   const [reason, setReason] = useState("");
   // Con factura de la plataforma.
@@ -109,11 +106,6 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
   const [productLines, setProductLines] = useState<ProductLine[]>(() => [emptyProductLine()]);
   const [known, setKnown] = useState<Map<string, Product>>(() => new Map());
 
-  const missingHint = useId();
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<unknown>(undefined);
-  /** Evita un segundo envío antes de que React vuelva a pintar el botón desactivado. */
-  const inFlight = useRef(false);
   /** Número (de la factura, o de orden) de cada línea enviada, para nombrar las que rechace el servidor. */
   const [sentLineNumbers, setSentLineNumbers] = useState<number[]>([]);
 
@@ -136,7 +128,7 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
   }
 
   const points = issuer.data?.points ?? [];
-  const point = points.find((candidate) => candidate.establishmentCode === chosenPoint?.establishmentCode && candidate.emissionPointCode === chosenPoint.emissionPointCode) ?? points[0];
+  const point = selectedPoint(points, chosenPoint);
   const rateDescriptions = new Map((rates.data ?? []).map((rate) => [rate.rateCode, rate.description]));
   const ratePercents = new Map((rates.data ?? []).map((rate) => [rate.rateCode, rate.rate]));
 
@@ -194,76 +186,53 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
   ];
   const ready = missing.length === 0 && issuer.data != null && point !== undefined;
 
-  async function emit(event: FormEvent) {
-    event.preventDefault();
-    if (inFlight.current || !ready || !issuer.data || !point) {
-      return;
-    }
-    inFlight.current = true;
-    setSending(true);
-    setError(undefined);
-    const header = { taxpayerId: issuer.data.taxpayerId, establishmentCode: point.establishmentCode, emissionPointCode: point.emissionPointCode, reason: reasonText };
-    // Sin los espacios que pueda traer un valor pegado: la vista previa los ignora, la API no.
-    // El descuento se envía siempre, el que muestra la pantalla, para que la vista previa y el servidor coincidan.
-    let body: CreditNoteRequest;
-    if (invoice) {
-      setSentLineNumbers(selected.map((index) => invoice.lines[index]?.lineNo ?? index + 1));
-      body = {
-        ...header,
-        invoiceId: invoice.id,
-        lines: selected.map((index) => {
-          const line = lines[index]!;
-          return {
-            invoiceLineNo: invoice.lines[index]!.lineNo,
+  function emit(event: FormEvent) {
+    return note.submit(event, ready && !!issuer.data && !!point, async (idempotencyKey) => {
+      if (!issuer.data || !point) {
+        throw new Error("Falta el emisor");
+      }
+      const header = { taxpayerId: issuer.data.taxpayerId, establishmentCode: point.establishmentCode, emissionPointCode: point.emissionPointCode, reason: reasonText };
+      // Sin los espacios que pueda traer un valor pegado: la vista previa los ignora, la API no.
+      // El descuento se envía siempre, el que muestra la pantalla, para que la vista previa y el servidor coincidan.
+      let body: CreditNoteRequest;
+      if (invoice) {
+        setSentLineNumbers(selected.map((index) => invoice.lines[index]?.lineNo ?? index + 1));
+        body = {
+          ...header,
+          invoiceId: invoice.id,
+          lines: selected.map((index) => {
+            const line = lines[index]!;
+            return {
+              invoiceLineNo: invoice.lines[index]!.lineNo,
+              quantity: line.quantity.trim(),
+              unitPrice: line.unitPrice.trim(),
+              discount: line.discount.trim() === "" ? "0.00" : line.discount.trim(),
+            };
+          }),
+        };
+      }
+      else {
+        setSentLineNumbers(productLines.map((_, index) => index + 1));
+        body = {
+          ...header,
+          modifiedDocument: { code: "01", number: normalizedNumber ?? invoiceNumber.trim(), issueDate: invoiceDate },
+          customerId,
+          lines: productLines.map((line) => ({
+            productId: line.productId,
             quantity: line.quantity.trim(),
             unitPrice: line.unitPrice.trim(),
             discount: line.discount.trim() === "" ? "0.00" : line.discount.trim(),
-          };
-        }),
-      };
-    }
-    else {
-      setSentLineNumbers(productLines.map((_, index) => index + 1));
-      body = {
-        ...header,
-        modifiedDocument: { code: "01", number: normalizedNumber ?? invoiceNumber.trim(), issueDate: invoiceDate },
-        customerId,
-        lines: productLines.map((line) => ({
-          productId: line.productId,
-          quantity: line.quantity.trim(),
-          unitPrice: line.unitPrice.trim(),
-          discount: line.discount.trim() === "" ? "0.00" : line.discount.trim(),
-        })),
-      };
-    }
-    try {
-      const issued = await unwrap(api.POST("/credit-notes", { params: { header: { "Idempotency-Key": idempotencyKey } }, body }));
-      router.push(`/documentos/${issued.id}`);
-    }
-    catch (problem) {
-      setError(problem);
-      inFlight.current = false;
-      setSending(false);
-    }
+          })),
+        };
+      }
+      return unwrap(api.POST("/credit-notes", { params: { header: { "Idempotency-Key": idempotencyKey } }, body }));
+    });
   }
-
-  const keyReused = error instanceof ApiError && error.errorCode === "IDEMPOTENCY_KEY_REUSED";
-  // No hay un campo por cada dato que el servidor valida: se dice aquí cuál rechazó.
-  const rejected = error instanceof ApiError ? Object.entries(error.fieldErrors) : [];
 
   return (
     <form onSubmit={emit} noValidate>
       <ErrorNotice error={issuer.error ?? rates.error} />
-      {issuer.data === null ? (
-        <Notice kind="warning">
-          Antes de emitir hay que <Link href="/configuracion/emisor">registrar el emisor</Link>.
-        </Notice>
-      ) : null}
-      {issuer.data && points.length === 0 ? (
-        <Notice kind="warning">
-          El emisor no tiene ningún punto de emisión habilitado. <Link href="/configuracion/emisor">Añada uno</Link> para poder emitir.
-        </Notice>
-      ) : null}
+      <IssuerNotices issuer={issuer.data} points={points} />
 
       {invoice ? (
         <>
@@ -275,9 +244,7 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
       )}
 
       <div className="form">
-        <Field label="Punto de emisión" hint="El número de la nota se asigna al emitirla.">
-          <PointSelect points={points} value={point} onChange={setChosenPoint} />
-        </Field>
+        <PointField points={points} point={point} onChange={setChosenPoint} />
         {invoice ? null : <ManualInvoiceFields tenantId={tenantId} value={manual} onChange={setManual} />}
         <Field label="Motivo" className="wide" hint="La razón de la modificación, como aparecerá en la nota.">
           <input maxLength={300} value={reason} onChange={(event) => setReason(event.target.value.replace(/[\r\n]+/g, " "))} />
@@ -318,34 +285,8 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
         </div>
       </div>
 
-      {keyReused ? (
-        <Notice kind="error">
-          Esta nota ya se había emitido con otro contenido. Revise los <Link href="/documentos">comprobantes</Link> antes de volver a emitir.
-        </Notice>
-      ) : rejected.length > 0 ? (
-        <Notice kind="error">
-          El servidor no aceptó estos datos de la nota:
-          <ul>
-            {rejected.map(([field, message]) => (
-              <li key={field}>
-                {fieldLabel(field, sentLineNumbers)}: {message}
-              </li>
-            ))}
-          </ul>
-        </Notice>
-      ) : (
-        <ErrorNotice error={error} />
-      )}
-      <p className="actions">
-        <button type="submit" className="btn btn-primary" disabled={!ready || sending} aria-describedby={missing.length > 0 ? missingHint : undefined}>
-          {sending ? "Emitiendo…" : "Emitir nota de crédito"}
-        </button>
-      </p>
-      {missing.length > 0 ? (
-        <p className="field-hint" id={missingHint}>
-          Para emitir falta: {missing.join("; ")}.
-        </p>
-      ) : null}
+      <NoteProblem error={note.error} fieldLabel={(field) => fieldLabel(field, sentLineNumbers)} />
+      <NoteActions label="Emitir nota de crédito" ready={ready} sending={note.sending} missing={missing} />
     </form>
   );
 }

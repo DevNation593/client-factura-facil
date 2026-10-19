@@ -1,15 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent } from "react";
 
 import { api, unwrap } from "@/api/client";
-import { ApiError } from "@/api/problem";
 import type { components } from "@/api/schema";
 import { Field } from "@/components/Field";
-import { ErrorNotice, Notice } from "@/components/Notice";
-import { PointSelect } from "@/components/PointSelect";
+import { ErrorNotice } from "@/components/Notice";
 import { PreviewTotals } from "@/components/PreviewTotals";
 import { catalogLabel } from "@/lib/catalogLabels";
 import { compare, parse, ZERO } from "@/lib/decimal";
@@ -19,6 +16,7 @@ import { loadIssuer, type Point } from "@/lib/issuer";
 import { useApi } from "@/lib/useApi";
 
 import { AuthorizedInvoice, emptyManualInvoice, InvoiceFacts, ManualInvoiceFields, ManualInvoiceNotice, type ManualInvoice } from "./NoteSource";
+import { IssuerNotices, NoteActions, NoteProblem, PointField, selectedPoint, useNoteEmit } from "./NoteShared";
 
 type Document = components["schemas"]["Document"];
 type DebitNoteRequest = components["schemas"]["IssueDebitNoteRequest"];
@@ -74,8 +72,7 @@ export function DebitNoteForm({ tenantId, invoiceId }: { tenantId: string; invoi
 
 function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | null }) {
   const router = useRouter();
-  // La clave nace con el formulario: un doble clic o un reintento tras un fallo emiten la misma nota.
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const note = useNoteEmit((id) => router.push(`/documentos/${id}`));
   const [chosenPoint, setChosenPoint] = useState<Point | undefined>(undefined);
   const [manual, setManual] = useState<ManualInvoice>(emptyManualInvoice);
   const nextKey = useRef(1);
@@ -83,11 +80,6 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
   const [methodChoice, setMethodChoice] = useState("");
   const [paymentAmount, setPaymentAmount] = useState<string | null>(null);
 
-  const missingHint = useId();
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<unknown>(undefined);
-  /** Evita un segundo envío antes de que React vuelva a pintar el botón desactivado. */
-  const inFlight = useRef(false);
 
   const issuer = useApi(() => loadIssuer(invoice?.taxpayerId), [tenantId, invoice?.taxpayerId ?? null]);
   const rates = useApi(() => unwrap(api.GET("/catalogs/tax-rates")), []);
@@ -98,7 +90,7 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
   }
 
   const points = issuer.data?.points ?? [];
-  const point = points.find((candidate) => candidate.establishmentCode === chosenPoint?.establishmentCode && candidate.emissionPointCode === chosenPoint.emissionPointCode) ?? points[0];
+  const point = selectedPoint(points, chosenPoint);
   const rateList = rates.data ?? [];
   const fallbackRate = defaultRate(rateList)?.rateCode ?? "";
   const rateDescriptions = new Map(rateList.map((rate) => [rate.rateCode, rate.description]));
@@ -139,62 +131,38 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
   ];
   const ready = missing.length === 0 && issuer.data != null && point !== undefined;
 
-  async function emit(event: FormEvent) {
-    event.preventDefault();
-    if (inFlight.current || !ready || !issuer.data || !point) {
-      return;
-    }
-    inFlight.current = true;
-    setSending(true);
-    setError(undefined);
-    const header = {
-      taxpayerId: issuer.data.taxpayerId,
-      establishmentCode: point.establishmentCode,
-      emissionPointCode: point.emissionPointCode,
-      reasons: rows.map((row) => ({ reason: row.reason.trim(), value: row.value.trim(), ivaRateCode: row.rateCode })),
-      payments: [{ methodCode, amount: amount.trim() }],
-    };
-    const body: DebitNoteRequest = invoice
-      ? { ...header, invoiceId: invoice.id }
-      : {
-        ...header,
-        modifiedDocument: { code: "01", number: normalizeInvoiceNumber(manual.number) ?? manual.number.trim(), issueDate: manual.date },
-        customerId: manual.customerId,
+  function emit(event: FormEvent) {
+    return note.submit(event, ready && !!issuer.data && !!point, (idempotencyKey) => {
+      if (!issuer.data || !point) {
+        throw new Error("Falta el emisor");
+      }
+      const header = {
+        taxpayerId: issuer.data.taxpayerId,
+        establishmentCode: point.establishmentCode,
+        emissionPointCode: point.emissionPointCode,
+        reasons: rows.map((row) => ({ reason: row.reason.trim(), value: row.value.trim(), ivaRateCode: row.rateCode })),
+        payments: [{ methodCode, amount: amount.trim() }],
       };
-    try {
-      const issued = await unwrap(api.POST("/debit-notes", { params: { header: { "Idempotency-Key": idempotencyKey } }, body }));
-      router.push(`/documentos/${issued.id}`);
-    }
-    catch (problem) {
-      setError(problem);
-      inFlight.current = false;
-      setSending(false);
-    }
+      const body: DebitNoteRequest = invoice
+        ? { ...header, invoiceId: invoice.id }
+        : {
+          ...header,
+          modifiedDocument: { code: "01", number: normalizeInvoiceNumber(manual.number) ?? manual.number.trim(), issueDate: manual.date },
+          customerId: manual.customerId,
+        };
+      return unwrap(api.POST("/debit-notes", { params: { header: { "Idempotency-Key": idempotencyKey } }, body }));
+    });
   }
-
-  const keyReused = error instanceof ApiError && error.errorCode === "IDEMPOTENCY_KEY_REUSED";
-  const rejected = error instanceof ApiError ? Object.entries(error.fieldErrors) : [];
 
   return (
     <form onSubmit={emit} noValidate>
       <ErrorNotice error={issuer.error ?? rates.error ?? methods.error} />
-      {issuer.data === null ? (
-        <Notice kind="warning">
-          Antes de emitir hay que <Link href="/configuracion/emisor">registrar el emisor</Link>.
-        </Notice>
-      ) : null}
-      {issuer.data && points.length === 0 ? (
-        <Notice kind="warning">
-          El emisor no tiene ningún punto de emisión habilitado. <Link href="/configuracion/emisor">Añada uno</Link> para poder emitir.
-        </Notice>
-      ) : null}
+      <IssuerNotices issuer={issuer.data} points={points} />
 
       {invoice ? <InvoiceFacts invoice={invoice} /> : <ManualInvoiceNotice />}
 
       <div className="form">
-        <Field label="Punto de emisión" hint="El número de la nota se asigna al emitirla.">
-          <PointSelect points={points} value={point} onChange={setChosenPoint} />
-        </Field>
+        <PointField points={points} point={point} onChange={setChosenPoint} />
         {invoice ? null : <ManualInvoiceFields tenantId={tenantId} value={manual} onChange={setManual} />}
       </div>
 
@@ -291,34 +259,8 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
         </div>
       </div>
 
-      {keyReused ? (
-        <Notice kind="error">
-          Esta nota ya se había emitido con otro contenido. Revise los <Link href="/documentos">comprobantes</Link> antes de volver a emitir.
-        </Notice>
-      ) : rejected.length > 0 ? (
-        <Notice kind="error">
-          El servidor no aceptó estos datos de la nota:
-          <ul>
-            {rejected.map(([field, message]) => (
-              <li key={field}>
-                {fieldLabel(field)}: {message}
-              </li>
-            ))}
-          </ul>
-        </Notice>
-      ) : (
-        <ErrorNotice error={error} />
-      )}
-      <p className="actions">
-        <button type="submit" className="btn btn-primary" disabled={!ready || sending} aria-describedby={missing.length > 0 ? missingHint : undefined}>
-          {sending ? "Emitiendo…" : "Emitir nota de débito"}
-        </button>
-      </p>
-      {missing.length > 0 ? (
-        <p className="field-hint" id={missingHint}>
-          Para emitir falta: {missing.join("; ")}.
-        </p>
-      ) : null}
+      <NoteProblem error={note.error} fieldLabel={fieldLabel} />
+      <NoteActions label="Emitir nota de débito" ready={ready} sending={note.sending} missing={missing} />
     </form>
   );
 }
