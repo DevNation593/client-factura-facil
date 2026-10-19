@@ -668,3 +668,30 @@ code {
   border-bottom: 1px solid var(--pauta);
   padding: 0.6rem 0;
 }
+
+/* Pestañas de una pantalla: enlaces que cambian lo que se ve, con la elegida subrayada. */
+.tabs {
+  border-bottom: 1px solid var(--pauta);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 1.25rem;
+}
+
+.tabs a {
+  border-bottom: 3px solid transparent;
+  color: var(--tinta-suave);
+  font-weight: 600;
+  margin-bottom: -1px;
+  padding: 0.5rem 0.75rem;
+  text-decoration: none;
+}
+
+.tabs a:hover {
+  color: var(--tinta);
+}
+
+.tabs a[aria-current="page"] {
+  border-bottom-color: var(--sello);
+  color: var(--sello);
+}

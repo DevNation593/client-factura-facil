@@ -26,6 +26,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Clientes" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Comprobantes" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: "Nueva factura" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Nueva nota" })).toHaveAttribute("href", "/notas/nueva");
     // Las integraciones son de quien administra la empresa.
     expect(screen.queryByRole("link", { name: "Integraciones" })).not.toBeInTheDocument();
     expect(screen.getByText("contenido")).toBeInTheDocument();
@@ -43,6 +44,20 @@ describe("AppShell", () => {
     expect(await screen.findByRole("link", { name: "Integraciones" })).toHaveAttribute("aria-current", "page");
     // No hay pantalla de equipo: cada usuario trabaja en las empresas que crea.
     expect(screen.queryByRole("link", { name: "Equipo" })).not.toBeInTheDocument();
+  });
+
+  it("offers new notes only to whoever can issue", async () => {
+    route.pathname = "/documentos";
+    stubApi({ "GET /tenants": () => json(200, [{ ...TENANT, role: "AUDITOR" }]) });
+    render(
+      <AppShell userName="Ana Pérez">
+        <p>contenido</p>
+      </AppShell>,
+    );
+
+    expect(await screen.findByText("Auditor")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Nueva factura" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Nueva nota" })).not.toBeInTheDocument();
   });
 
   it("signs out and leaves for the address the server gives", async () => {
