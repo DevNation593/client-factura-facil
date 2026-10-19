@@ -16,6 +16,7 @@ import { emptyProductLine, ProductLines, type ProductLine } from "@/components/P
 import { availableBalance, prorateDiscount } from "@/lib/creditNote";
 import { formatIssueDate } from "@/lib/dates";
 import { compare, formatUnitPrice, parse, plainDecimal } from "@/lib/decimal";
+import { normalizeInvoiceNumber } from "@/lib/invoiceNumber";
 import { previewInvoice } from "@/lib/invoicePreview";
 import { loadIssuer, type Point } from "@/lib/issuer";
 import { useApi } from "@/lib/useApi";
@@ -23,9 +24,6 @@ import { useApi } from "@/lib/useApi";
 type Document = components["schemas"]["Document"];
 type Product = components["schemas"]["Product"];
 type CreditNoteRequest = components["schemas"]["IssueCreditNoteRequest"];
-
-/** Número de una factura escrito a mano: establecimiento, punto y secuencial. */
-const INVOICE_NUMBER = /^[0-9]{3}-[0-9]{3}-[0-9]{9}$/;
 
 const LINE_FIELDS: Record<string, string> = {
   invoiceLineNo: "línea de la factura",
@@ -196,7 +194,8 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
   const total = parse(preview.total, 2);
   const balanceValue = balance === null ? null : parse(balance, 2);
   const exceedsBalance = preview.complete && total !== null && balanceValue !== null && compare(total, balanceValue) > 0;
-  const numberValid = INVOICE_NUMBER.test(invoiceNumber.trim());
+  const normalizedNumber = normalizeInvoiceNumber(invoiceNumber);
+  const numberValid = normalizedNumber !== null;
   const reasonText = reason.trim();
 
   // Con el botón deshabilitado, se dice por qué.
@@ -251,7 +250,7 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
       setSentLineNumbers(productLines.map((_, index) => index + 1));
       body = {
         ...header,
-        modifiedDocument: { code: "01", number: invoiceNumber.trim(), issueDate: invoiceDate },
+        modifiedDocument: { code: "01", number: normalizedNumber ?? invoiceNumber.trim(), issueDate: invoiceDate },
         customerId,
         lines: productLines.map((line) => ({
           productId: line.productId,
@@ -320,10 +319,17 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
           <>
             <Field
               label="Número de la factura"
-              hint="EEE-PPP-SSSSSSSSS: establecimiento, punto de emisión y secuencial."
+              hint="EEE-PPP-SSSSSSSSS: establecimiento, punto de emisión y secuencial. Puede escribir los 15 dígitos sin guiones."
               error={invoiceNumber.trim() !== "" && !numberValid ? "Escriba el número completo, por ejemplo 001-001-000000123." : undefined}
             >
-              <input inputMode="numeric" placeholder="001-001-000000123" value={invoiceNumber} onChange={(event) => setInvoiceNumber(event.target.value)} />
+              {/* Teclado numérico en el teléfono: no tiene guion, así que se aceptan los 15 dígitos y al salir se muestran con guiones. */}
+              <input
+                inputMode="numeric"
+                placeholder="001-001-000000123"
+                value={invoiceNumber}
+                onChange={(event) => setInvoiceNumber(event.target.value)}
+                onBlur={() => setInvoiceNumber((current) => normalizeInvoiceNumber(current) ?? current)}
+              />
             </Field>
             <Field label="Fecha de la factura">
               <input type="date" value={invoiceDate} onChange={(event) => setInvoiceDate(event.target.value)} />

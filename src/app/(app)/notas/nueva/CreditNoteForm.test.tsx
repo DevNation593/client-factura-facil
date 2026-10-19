@@ -226,6 +226,54 @@ describe("Nota de crédito", () => {
     await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/documentos/${ISSUED.id}`));
   });
 
+  it("acceptsTheInvoiceNumberWithOrWithoutHyphens", async () => {
+    const stub = api(() => json(202, ISSUED));
+    renderWithTenant(<NuevaNotaPage />);
+    const number = await screen.findByLabelText("Número de la factura");
+    // Se puede escribir con el teclado numérico del teléfono, que no tiene guion.
+    expect(number).toHaveAttribute("inputmode", "numeric");
+    fireEvent.change(screen.getByLabelText("Fecha de la factura"), { target: { value: "2026-10-01" } });
+    await userEvent.click(screen.getByRole("combobox", { name: "Cliente" }));
+    await userEvent.click(await screen.findByRole("option", { name: /María Pérez/ }));
+    await userEvent.click(screen.getByRole("combobox", { name: "Producto de la línea 1" }));
+    await userEvent.click(await screen.findByRole("option", { name: /Servicio de consultoría/ }));
+    await userEvent.type(screen.getByLabelText("Motivo"), "Descuento posterior");
+
+    // Un número inválido no deja emitir.
+    await userEvent.type(number, "00100100000012");
+    await userEvent.tab();
+    expect(number).toHaveValue("00100100000012");
+    expect(number).toHaveAccessibleDescription(/Escriba el número completo/);
+    expect(emitButton()).toBeDisabled();
+
+    // Los quince dígitos solos valen, y al salir del campo se muestran con sus guiones.
+    await userEvent.clear(number);
+    await userEvent.type(number, "001001000000123");
+    expect(emitButton()).toBeEnabled();
+    await userEvent.tab();
+    expect(number).toHaveValue("001-001-000000123");
+    await userEvent.click(emitButton());
+    await waitFor(() => expect(stub.to("POST", "/credit-notes")).toHaveLength(1));
+    expect((stub.to("POST", "/credit-notes")[0]?.body as { modifiedDocument: { number: string } }).modifiedDocument.number).toBe("001-001-000000123");
+  });
+
+  it("acceptsTheHyphenatedInvoiceNumber", async () => {
+    const stub = api(() => json(202, ISSUED));
+    renderWithTenant(<NuevaNotaPage />);
+    await userEvent.type(await screen.findByLabelText("Número de la factura"), "002-003-000000045");
+    fireEvent.change(screen.getByLabelText("Fecha de la factura"), { target: { value: "2026-10-01" } });
+    await userEvent.click(screen.getByRole("combobox", { name: "Cliente" }));
+    await userEvent.click(await screen.findByRole("option", { name: /María Pérez/ }));
+    await userEvent.click(screen.getByRole("combobox", { name: "Producto de la línea 1" }));
+    await userEvent.click(await screen.findByRole("option", { name: /Servicio de consultoría/ }));
+    await userEvent.type(screen.getByLabelText("Motivo"), "Descuento posterior");
+
+    await userEvent.click(emitButton());
+
+    await waitFor(() => expect(stub.to("POST", "/credit-notes")).toHaveLength(1));
+    expect((stub.to("POST", "/credit-notes")[0]?.body as { modifiedDocument: { number: string } }).modifiedDocument.number).toBe("002-003-000000045");
+  });
+
   it("showsApiProblem", async () => {
     route.search = `?factura=${INVOICE_ID}`;
     const stub = api(() => problem(422, "CREDIT_EXCEEDS_INVOICE", "Con las notas de crédito vigentes se superaría el total de la factura (49.50)."));
