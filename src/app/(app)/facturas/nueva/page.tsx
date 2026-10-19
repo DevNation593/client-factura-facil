@@ -7,6 +7,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { api, unwrap } from "@/api/client";
 import { ApiError } from "@/api/problem";
 import type { components } from "@/api/schema";
+import { CatalogPicker } from "@/components/CatalogPicker";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
@@ -17,7 +18,6 @@ import { previewInvoice, sumAmounts } from "@/lib/invoicePreview";
 import { loginUrl } from "@/lib/sessionNavigation";
 import { canBill, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
-import { useDebounced } from "@/lib/useDebounced";
 
 type Product = components["schemas"]["Product"];
 
@@ -80,8 +80,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
   const [savedAt, setSavedAt] = useState<string | undefined>(undefined);
   /** Lo escrito no se pudo guardar como borrador (no hay sitio, o el navegador no deja). */
   const [unsaved, setUnsaved] = useState(false);
-  const [search, setSearch] = useState("");
-  const [productSearch, setProductSearch] = useState("");
+  const [customerLabel, setCustomerLabel] = useState(draft.customerName);
   /** Productos que este editor ya ha visto: los de cada búsqueda y los de las líneas del borrador. */
   const [known, setKnown] = useState<Map<string, Product>>(() => new Map());
   const missingHint = useId();
@@ -92,10 +91,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
   /** Tras emitir, el borrador ya no existe: no hay que volver a guardarlo. */
   const emitted = useRef(false);
 
-  const q = useDebounced(search.trim(), 300);
   const issuer = useApi(loadIssuer, [tenantId]);
-  const customers = useApi(() => unwrap(api.GET("/customers", { params: { query: { size: 20, ...(q ? { q } : {}) } } })), [tenantId, q]);
-  const productQuery = useDebounced(productSearch.trim(), 300);
 
   function remember(products: Product[]) {
     setKnown((current) => {
@@ -105,12 +101,16 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
     });
   }
 
-  // Los productos se buscan, como los clientes: un catálogo real no cabe en una lista.
-  const products = useApi(async () => {
-    const page = await unwrap(api.GET("/products", { params: { query: { size: 20, ...(productQuery ? { q: productQuery } : {}) } } }));
-    remember(page.items);
-    return page;
-  }, [tenantId, productQuery]);
+  async function searchCustomers(query: string) {
+    const page = await unwrap(api.GET("/customers", { params: { query: { size: 20, ...(query ? { q: query } : {}) } } }));
+    return page.items;
+  }
+
+  async function searchProducts(query: string) {
+    const page = await unwrap(api.GET("/products", { params: { query: { size: 20, ...(query ? { q: query } : {}) } } }));
+    return page.items;
+  }
+
   // Los de las líneas de un borrador retomado pueden no estar en ninguna búsqueda: se piden por su id.
   const unknownIds = [...new Set(draft.lines.map((line) => line.productId).filter((id) => id !== "" && !known.has(id)))].sort();
   const lineProducts = useApi(async () => {
@@ -164,7 +164,6 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
   const methodCode = draft.payments[0]?.methodCode || methods.data?.[0]?.code || "";
 
   const productById = known;
-  const results = products.data?.items ?? [];
   const rateByCode = new Map((rates.data ?? []).map((rate) => [rate.rateCode, rate]));
   const preview = previewInvoice(
     draft.lines.map((line) => {
@@ -262,7 +261,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
           que hizo que lo rechazara antes de emitirla.
         </Notice>
       ) : null}
-      <ErrorNotice error={issuer.error ?? products.error ?? lineProducts.error ?? rates.error ?? methods.error} returnTo={returnTo} />
+      <ErrorNotice error={issuer.error ?? lineProducts.error ?? rates.error ?? methods.error} returnTo={returnTo} />
       {issuer.data === null ? (
         <Notice kind="warning">
           Antes de facturar hay que <Link href="/configuracion/emisor">registrar el emisor</Link>.
@@ -290,37 +289,28 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
             ))}
           </select>
         </Field>
-        <Field label="Buscar cliente" hint="Por nombre o identificación.">
-          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} maxLength={100} />
-        </Field>
         <Field label="Cliente" className="wide">
-          <select
+          <CatalogPicker
+            tenantId={tenantId}
             value={draft.customerId}
-            onChange={(event) => {
-              const customer = customers.data?.items.find((candidate) => candidate.id === event.target.value);
-              change({ customerId: event.target.value, customerName: customer?.name ?? "" });
+            selectedLabel={customerLabel}
+            placeholder="Elija o busque un cliente"
+            returnTo={returnTo}
+            load={searchCustomers}
+            optionLabel={(customer) => `${customer.name} (${customer.idNumber})`}
+            onSearchStart={() => {
+              setCustomerLabel("");
+              change({ customerId: "", customerName: "" });
             }}
-          >
-            <option value="">Elija un cliente</option>
-            {draft.customerId && !customers.data?.items.some((customer) => customer.id === draft.customerId) ? (
-              <option value={draft.customerId}>{draft.customerName}</option>
-            ) : null}
-            {customers.data?.items.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name} ({customer.idNumber})
-              </option>
-            ))}
-          </select>
+            onSelect={(customer) => {
+              setCustomerLabel(`${customer.name} (${customer.idNumber})`);
+              change({ customerId: customer.id, customerName: customer.name });
+            }}
+          />
         </Field>
       </div>
-      <ErrorNotice error={customers.error} returnTo={returnTo} />
 
       <h2>Detalle</h2>
-      <div className="form">
-        <Field label="Buscar producto" hint="Por nombre o código. Los resultados aparecen en la lista de cada línea.">
-          <input type="search" value={productSearch} onChange={(event) => setProductSearch(event.target.value)} maxLength={100} />
-        </Field>
-      </div>
       <div className="table-scroll">
         <table className="ruled lines">
           <thead>
@@ -347,28 +337,23 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
             {draft.lines.map((line, index) => (
               <tr key={index}>
                 <td className="field">
-                  <select
+                  <CatalogPicker
                     aria-label={`Producto de la línea ${index + 1}`}
+                    tenantId={tenantId}
                     value={line.productId}
-                    onChange={(event) => {
-                      const product = productById.get(event.target.value);
-                      changeLine(index, { productId: event.target.value, unitPrice: product ? formatUnitPrice(product.unitPrice) : line.unitPrice });
+                    selectedLabel={productById.has(line.productId)
+                      ? `${productById.get(line.productId)?.name} (${productById.get(line.productId)?.sku})`
+                      : line.productId ? "Producto no disponible" : ""}
+                    placeholder="Elija o busque un producto"
+                    returnTo={returnTo}
+                    load={searchProducts}
+                    optionLabel={(product) => `${product.name} (${product.sku})`}
+                    onSearchStart={() => changeLine(index, { productId: "", unitPrice: "" })}
+                    onSelect={(product) => {
+                      remember([product]);
+                      changeLine(index, { productId: product.id, unitPrice: formatUnitPrice(product.unitPrice) });
                     }}
-                  >
-                    <option value="">Elija un producto</option>
-                    {line.productId !== "" && !results.some((product) => product.id === line.productId) ? (
-                      <option value={line.productId}>
-                        {productById.has(line.productId)
-                          ? `${productById.get(line.productId)?.name} (${productById.get(line.productId)?.sku})`
-                          : "Producto no disponible"}
-                      </option>
-                    ) : null}
-                    {results.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name} ({product.sku})
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </td>
                 <td className="field">
                   <input

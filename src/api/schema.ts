@@ -400,9 +400,11 @@ export interface paths {
         };
         /** Un cliente de la empresa activa. */
         get: operations["getCustomer"];
-        put?: never;
+        /** Actualiza un cliente activo. Requiere rol OWNER, ADMIN o BILLER. */
+        put: operations["updateCustomer"];
         post?: never;
-        delete?: never;
+        /** Quita un cliente activo de la empresa sin borrar sus comprobantes. Requiere rol OWNER, ADMIN o BILLER. */
+        delete: operations["deleteCustomer"];
         options?: never;
         head?: never;
         patch?: never;
@@ -438,9 +440,11 @@ export interface paths {
         };
         /** Un producto de la empresa activa. */
         get: operations["getProduct"];
-        put?: never;
+        /** Actualiza un producto activo. Requiere rol OWNER o ADMIN, o una API key. */
+        put: operations["updateProduct"];
         post?: never;
-        delete?: never;
+        /** Quita un producto activo de la empresa sin borrar sus comprobantes. Requiere rol OWNER o ADMIN, o una API key. */
+        delete: operations["deleteProduct"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2216,6 +2220,69 @@ export interface operations {
             404: components["responses"]["Problem"];
         };
     };
+    updateCustomer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
+                "X-Tenant-Id"?: components["parameters"]["TenantId"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCustomerRequest"];
+            };
+        };
+        responses: {
+            /** @description Cliente actualizado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Customer"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deleteCustomer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
+                "X-Tenant-Id"?: components["parameters"]["TenantId"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cliente eliminado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
     listProducts: {
         parameters: {
             query?: {
@@ -2310,6 +2377,69 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+        };
+    };
+    updateProduct: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
+                "X-Tenant-Id"?: components["parameters"]["TenantId"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProductRequest"];
+            };
+        };
+        responses: {
+            /** @description Producto actualizado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    deleteProduct: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
+                "X-Tenant-Id"?: components["parameters"]["TenantId"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Producto eliminado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     setEmissionPointSequence: {
