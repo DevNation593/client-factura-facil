@@ -39,6 +39,7 @@ Copiar `.env.example` a `.env.local` y completar. Ninguna llega al navegador.
 | `API_TIMEOUT_MS` | Opcional: cuánto se espera a la API antes de responder `504` (30000). |
 | `APP_BASE_URL` | Dirección pública de esta aplicación (la misma que `EINVOICE_WEB_URL` de la API). Con `https`, las cookies llevan `Secure`; fuera de `localhost` es obligatorio. |
 | `SESSION_SECRET` | Al menos 32 caracteres aleatorios. Cifra las cookies de sesión: cambiarlo cierra todas las sesiones. |
+| `TRUSTED_PROXY_HOPS` | Opcional: cuántos proxies de confianza añaden su entrada a `X-Forwarded-For` (1). En Cloud Run, 1 con la web detrás del frente de Google y 2 con un balanceador HTTPS delante. |
 
 ## Comandos
 
@@ -63,7 +64,7 @@ Para arrancar todo en local (infraestructura, API y esta aplicación), ver [docs
 - **Una sola forma de pago por factura** en el editor. Los productos, como los clientes, se buscan: la lista de cada línea muestra los 20 primeros resultados.
 - **"Integraciones"** (propietario y administradores) registra las direcciones a las que avisar de lo que pasa con los comprobantes, muestra su secreto una sola vez y enseña los 20 avisos más recientes de cada una, sin paginar los anteriores. Si la instalación tiene los avisos apagados, registrar una dirección responde con un mensaje que lo dice.
 - **No hay equipo ni invitaciones:** cada usuario trabaja en las empresas que crea, como propietario.
-- **La IP del usuario sale de `X-Forwarded-For`.** La API limita los intentos de ingreso por IP con la que la web le pasa; sin un proxy de entrada que fije esa cabecera, la pone el propio navegador y el límite por IP no sirve (el bloqueo por correo sí).
+- **La IP del usuario sale de `X-Forwarded-For`.** La API limita los intentos de ingreso por IP con la que la web le pasa. Cada proxy de confianza añade su entrada al final de la cabecera y lo de la izquierda lo escribe el navegador, así que vale la entrada en la posición `TRUSTED_PROXY_HOPS` contando desde la derecha (detalle para Cloud Run en el [doc 13 de la API](https://github.com/DevNation593/api-emite-facil/blob/dev/docs/13-deployment.md)). Sin un proxy de entrada que fije esa cabecera, la pone el propio navegador y el límite por IP no sirve (el bloqueo por correo sí).
 - **Los borradores quedan en el navegador al cerrar sesión.** En un equipo compartido, otra persona de la misma empresa que use el mismo perfil del navegador los vería.
 - **Una sola instancia a efectos de renovación de sesión.** Las peticiones simultáneas comparten una renovación del token dentro de un mismo proceso; con varias instancias, la API vería dos veces el mismo token de renovación y cerraría la sesión: hace falta afinidad de sesión o un almacén compartido.
 - **Solo español**, sin internacionalización.

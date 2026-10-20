@@ -12,6 +12,8 @@ export type ServerConfig = {
   sessionSecret: string;
   /** Las cookies llevan Secure cuando la aplicación se sirve por HTTPS. */
   secureCookies: boolean;
+  /** Proxies de confianza que añaden su entrada a X-Forwarded-For (ver clientIp en authRoute.ts). */
+  trustedProxyHops: number;
 };
 
 const MIN_SECRET_LENGTH = 32;
@@ -57,6 +59,17 @@ function apiTimeout(env: Record<string, string | undefined>): number {
   return Number(value);
 }
 
+function trustedProxyHops(env: Record<string, string | undefined>): number {
+  const value = optional(env, "TRUSTED_PROXY_HOPS");
+  if (value === undefined) {
+    return 1;
+  }
+  if (!/^[1-9][0-9]?$/.test(value)) {
+    throw new Error("TRUSTED_PROXY_HOPS debe ser un número entero de proxies mayor que cero");
+  }
+  return Number(value);
+}
+
 export function readConfig(env: Record<string, string | undefined> = process.env): ServerConfig {
   const sessionSecret = required(env, "SESSION_SECRET");
   if (sessionSecret.length < MIN_SECRET_LENGTH) {
@@ -73,5 +86,6 @@ export function readConfig(env: Record<string, string | undefined> = process.env
     appBaseUrl,
     sessionSecret,
     secureCookies: appBaseUrl.protocol === "https:",
+    trustedProxyHops: trustedProxyHops(env),
   };
 }

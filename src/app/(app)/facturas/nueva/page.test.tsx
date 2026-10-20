@@ -234,6 +234,47 @@ describe("Nueva factura", () => {
     expect(stub.to("POST", "/invoices")[0]?.headers.get("Idempotency-Key")).toBe(draft.idempotencyKey);
   });
 
+  it("keeps the last change when the user leaves before it was saved", async () => {
+    const draft = { ...newDraft(), lines: [{ productId: SERVICE.id, quantity: "3", unitPrice: "10.00", discount: "0.00" }] };
+    saveDraft(TENANT_ID, draft);
+    route.search = `?borrador=${draft.id}`;
+    api(() => json(202, ISSUED));
+    const { unmount } = renderWithTenant(<NuevaFacturaPage />);
+
+    fireEvent.change(await screen.findByLabelText("Cantidad de la línea 1"), { target: { value: "2" } });
+    // Sale enseguida, sin esperar los 400 ms del guardado: por ejemplo, a «Ver borradores».
+    unmount();
+
+    expect(listDrafts(TENANT_ID).find((saved) => saved.id === draft.id)?.lines[0]?.quantity).toBe("2");
+  });
+
+  it("keeps the last change when the tab is closed before it was saved", async () => {
+    const draft = { ...newDraft(), lines: [{ productId: SERVICE.id, quantity: "3", unitPrice: "10.00", discount: "0.00" }] };
+    saveDraft(TENANT_ID, draft);
+    route.search = `?borrador=${draft.id}`;
+    api(() => json(202, ISSUED));
+    renderWithTenant(<NuevaFacturaPage />);
+
+    fireEvent.change(await screen.findByLabelText("Cantidad de la línea 1"), { target: { value: "2" } });
+    fireEvent(window, new Event("pagehide"));
+
+    expect(listDrafts(TENANT_ID).find((saved) => saved.id === draft.id)?.lines[0]?.quantity).toBe("2");
+  });
+
+  it("does not bring back the draft of an issued invoice when leaving", async () => {
+    api(() => json(202, ISSUED));
+    const { unmount } = renderWithTenant(<NuevaFacturaPage />);
+    await fillInvoice();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Emitir factura" })).toBeEnabled());
+    fireEvent.change(screen.getByLabelText("Cantidad de la línea 1"), { target: { value: "3" } });
+
+    await userEvent.click(screen.getByRole("button", { name: "Emitir factura" }));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith(`/documentos/${ISSUED.id}`));
+    unmount();
+
+    expect(listDrafts(TENANT_ID)).toHaveLength(0);
+  });
+
   it("finds a product that is not among the first ones by searching for it", async () => {
     const SCREW = { id: "12121212-1212-4121-8121-121212121212", sku: "TOR-900", name: "Tornillo hexagonal", unitPrice: "0.25", ivaRateCode: "4" };
     const stub = api(() => json(202, ISSUED));

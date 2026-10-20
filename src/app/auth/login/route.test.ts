@@ -49,7 +49,8 @@ describe("ingreso", () => {
 
     const response = await login({ email: "ana@example.test", password: "una contraseña larga", volver: "/documentos?page=2" }, {
       ...SAME_ORIGIN,
-      "X-Forwarded-For": "203.0.113.9, 10.0.0.1",
+      // La primera la inventa el navegador; la última la añade el proxy de entrada.
+      "X-Forwarded-For": "10.0.0.1, 203.0.113.9",
     });
 
     const text = await response.text();
