@@ -3,7 +3,8 @@
 # Las pruebas no corren aquí: las ejecuta el CI antes de construir la imagen. La configuración
 # (API_BASE_URL, APP_BASE_URL, SESSION_SECRET, API_TIMEOUT_MS) se lee al arrancar, no al construir:
 # la misma imagen sirve en cualquier entorno. Despliegue en Google Cloud Run: docs/13-deployment.md
-# del repositorio de la API.
+# del repositorio de la API. Se construye igual con BuildKit que con el constructor clásico de
+# Docker, que es el que usa Cloud Build: nada de RUN --mount.
 
 # Las dos etapas usan la plataforma de destino: la salida autocontenida copia dependencias con
 # binarios nativos, que deben ser los de la máquina donde se ejecuta la imagen.
@@ -11,7 +12,9 @@ FROM node:24-alpine AS build
 WORKDIR /src
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+# Las dependencias van en una capa propia, que solo se rehace cuando cambian package.json o
+# package-lock.json.
+RUN npm ci
 COPY . .
 # Salida autocontenida: solo lo que el servidor necesita para ejecutarse.
 RUN NEXT_OUTPUT=standalone npm run build
