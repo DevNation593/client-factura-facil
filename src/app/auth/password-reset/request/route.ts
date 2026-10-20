@@ -13,6 +13,6 @@ export async function POST(request: NextRequest) {
   if (form instanceof NextResponse) {
     return form;
   }
-  const result = await requestPasswordReset(config, text(form, "email"), clientIp(request));
+  const result = await requestPasswordReset(config, text(form, "email"), clientIp(request, config));
   return "problem" in result ? problemResponse(result.problem) : NextResponse.json({}, { status: 202, headers: NO_STORE });
 }
