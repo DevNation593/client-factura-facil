@@ -1,7 +1,15 @@
 node_modules
 .next
+# Los .env tienen secretos: nunca deben llegar a la construcción ni a la imagen.
 .env*
 !.env.example
 coverage
 *.log
+*.tsbuildinfo
 Dockerfile
+.dockerignore
+.git
+.github
+.vscode
+.idea
+*.md

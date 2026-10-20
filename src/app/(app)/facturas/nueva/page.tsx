@@ -11,10 +11,13 @@ import { CatalogPicker } from "@/components/CatalogPicker";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
+import { PointSelect } from "@/components/PointSelect";
+import { PreviewTotals } from "@/components/PreviewTotals";
+import { ProductLines } from "@/components/ProductLines";
 import { catalogLabel } from "@/lib/catalogLabels";
-import { formatUnitPrice } from "@/lib/decimal";
-import { deleteDraft, findDraft, newDraft, saveDraft, type Draft, type DraftLine } from "@/lib/drafts";
+import { deleteDraft, findDraft, newDraft, saveDraft, type Draft } from "@/lib/drafts";
 import { previewInvoice, sumAmounts } from "@/lib/invoicePreview";
+import { loadIssuer } from "@/lib/issuer";
 import { loginUrl } from "@/lib/sessionNavigation";
 import { canBill, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
@@ -35,29 +38,6 @@ function fieldLabel(field: string): string {
     return `Pago, ${PAYMENT_FIELDS[payment[1] ?? ""] ?? payment[1]}`;
   }
   return field === "customerId" ? "Cliente" : field;
-}
-
-/** Punto de emisión habilitado, con el código de su establecimiento. */
-type Point = { establishmentCode: string; emissionPointCode: string };
-
-async function loadIssuer(): Promise<{ taxpayerId: string; points: Point[] } | null> {
-  const taxpayer = (await unwrap(api.GET("/taxpayers")))[0];
-  if (!taxpayer) {
-    return null;
-  }
-  const establishments = await unwrap(
-    api.GET("/taxpayers/{taxpayerId}/establishments", { params: { path: { taxpayerId: taxpayer.id } } }),
-  );
-  const points: Point[] = [];
-  for (const establishment of establishments) {
-    const list = await unwrap(api.GET("/emission-points", { params: { query: { establishmentId: establishment.id } } }));
-    for (const point of list) {
-      if (point.enabled) {
-        points.push({ establishmentCode: establishment.code, emissionPointCode: point.code });
-      }
-    }
-  }
-  return { taxpayerId: taxpayer.id, points };
 }
 
 /** Editor de una factura. Lo que se escribe se guarda como borrador en este navegador hasta emitirla. */
@@ -90,8 +70,10 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
   const inFlight = useRef(false);
   /** Tras emitir, el borrador ya no existe: no hay que volver a guardarlo. */
   const emitted = useRef(false);
+  /** Lo cambiado que aún espera su guardado. */
+  const pending = useRef<Draft | undefined>(undefined);
 
-  const issuer = useApi(loadIssuer, [tenantId]);
+  const issuer = useApi(() => loadIssuer(), [tenantId]);
 
   function remember(products: Product[]) {
     setKnown((current) => {
@@ -103,11 +85,6 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
 
   async function searchCustomers(query: string) {
     const page = await unwrap(api.GET("/customers", { params: { query: { size: 20, ...(query ? { q: query } : {}) } } }));
-    return page.items;
-  }
-
-  async function searchProducts(query: string) {
-    const page = await unwrap(api.GET("/products", { params: { query: { size: 20, ...(query ? { q: query } : {}) } } }));
     return page.items;
   }
 
@@ -136,7 +113,9 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
     if (!dirty) {
       return;
     }
+    pending.current = draft;
     const timer = setTimeout(() => {
+      pending.current = undefined;
       if (emitted.current) {
         return;
       }
@@ -149,13 +128,25 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
     return () => clearTimeout(timer);
   }, [draft, dirty, tenantId]);
 
+  // Quien sale antes de esos 400 ms, a otra pantalla o cerrando la pestaña, no pierde lo último que cambió.
+  useEffect(() => {
+    function flush() {
+      const unsavedDraft = pending.current;
+      pending.current = undefined;
+      if (unsavedDraft && !emitted.current) {
+        saveDraft(tenantId, unsavedDraft);
+      }
+    }
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [tenantId]);
+
   function change(patch: Partial<Draft>) {
     setDraft((current) => ({ ...current, ...patch }));
     setDirty(true);
-  }
-
-  function changeLine(index: number, patch: Partial<DraftLine>) {
-    change({ lines: draft.lines.map((line, position) => (position === index ? { ...line, ...patch } : line)) });
   }
 
   // Valores por defecto mientras el usuario no elige: el primer punto de emisión y la primera forma de pago.
@@ -165,6 +156,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
 
   const productById = known;
   const rateByCode = new Map((rates.data ?? []).map((rate) => [rate.rateCode, rate]));
+  const rateDescriptions = new Map((rates.data ?? []).map((rate) => [rate.rateCode, rate.description]));
   const preview = previewInvoice(
     draft.lines.map((line) => {
       const product = productById.get(line.productId);
@@ -275,19 +267,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
 
       <div className="form">
         <Field label="Punto de emisión" hint="El número de la factura se asigna al emitirla.">
-          <select
-            value={point ? `${point.establishmentCode}-${point.emissionPointCode}` : ""}
-            onChange={(event) => {
-              const [establishmentCode = "", emissionPointCode = ""] = event.target.value.split("-");
-              change({ establishmentCode, emissionPointCode });
-            }}
-          >
-            {points.map((candidate) => (
-              <option key={`${candidate.establishmentCode}-${candidate.emissionPointCode}`}>
-                {candidate.establishmentCode}-{candidate.emissionPointCode}
-              </option>
-            ))}
-          </select>
+          <PointSelect points={points} value={point} onChange={(chosen) => change(chosen)} />
         </Field>
         <Field label="Cliente" className="wide">
           <CatalogPicker
@@ -311,102 +291,15 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
       </div>
 
       <h2>Detalle</h2>
-      <div className="table-scroll">
-        <table className="ruled lines">
-          <thead>
-            <tr>
-              <th scope="col">Producto</th>
-              <th scope="col" className="num">
-                Cantidad
-              </th>
-              <th scope="col" className="num">
-                Precio unitario
-              </th>
-              <th scope="col" className="num">
-                Descuento
-              </th>
-              <th scope="col" className="num">
-                Subtotal
-              </th>
-              <th scope="col">
-                <span className="sr-only">Quitar</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {draft.lines.map((line, index) => (
-              <tr key={index}>
-                <td className="field">
-                  <CatalogPicker
-                    aria-label={`Producto de la línea ${index + 1}`}
-                    tenantId={tenantId}
-                    value={line.productId}
-                    selectedLabel={productById.has(line.productId)
-                      ? `${productById.get(line.productId)?.name} (${productById.get(line.productId)?.sku})`
-                      : line.productId ? "Producto no disponible" : ""}
-                    placeholder="Elija o busque un producto"
-                    returnTo={returnTo}
-                    load={searchProducts}
-                    optionLabel={(product) => `${product.name} (${product.sku})`}
-                    onSearchStart={() => changeLine(index, { productId: "", unitPrice: "" })}
-                    onSelect={(product) => {
-                      remember([product]);
-                      changeLine(index, { productId: product.id, unitPrice: formatUnitPrice(product.unitPrice) });
-                    }}
-                  />
-                </td>
-                <td className="field">
-                  <input
-                    aria-label={`Cantidad de la línea ${index + 1}`}
-                    className="num"
-                    inputMode="decimal"
-                    size={8}
-                    value={line.quantity}
-                    onChange={(event) => changeLine(index, { quantity: event.target.value })}
-                  />
-                </td>
-                <td className="field">
-                  <input
-                    aria-label={`Precio unitario de la línea ${index + 1}`}
-                    className="num"
-                    inputMode="decimal"
-                    size={10}
-                    value={line.unitPrice}
-                    onChange={(event) => changeLine(index, { unitPrice: event.target.value })}
-                  />
-                </td>
-                <td className="field">
-                  <input
-                    aria-label={`Descuento de la línea ${index + 1}`}
-                    className="num"
-                    inputMode="decimal"
-                    size={8}
-                    value={line.discount}
-                    onChange={(event) => changeLine(index, { discount: event.target.value })}
-                  />
-                </td>
-                <td className="num">{preview.lines[index] ?? "Incompleta"}</td>
-                <td>
-                  {draft.lines.length > 1 ? (
-                    <button type="button" className="btn-link" onClick={() => change({ lines: draft.lines.filter((_, position) => position !== index) })}>
-                      Quitar <span className="sr-only">la línea {index + 1}</span>
-                    </button>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="actions">
-        <button
-          type="button"
-          className="btn"
-          onClick={() => change({ lines: [...draft.lines, { productId: "", quantity: "1", unitPrice: "", discount: "0.00" }] })}
-        >
-          Añadir línea
-        </button>
-      </p>
+      <ProductLines
+        tenantId={tenantId}
+        lines={draft.lines}
+        products={productById}
+        subtotals={preview.lines}
+        returnTo={returnTo}
+        onChange={(lines) => change({ lines })}
+        onProductSeen={(product) => remember([product])}
+      />
 
       <div className="split">
         <div>
@@ -436,41 +329,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
           </div>
         </div>
         <div>
-          <h2>Totales</h2>
-          <table className="ruled totals">
-            <tbody>
-              {preview.taxes.map((tax) => (
-                <tr key={`base-${tax.rateCode}`}>
-                  <td>Subtotal {rateByCode.get(tax.rateCode)?.description ?? `${tax.ratePercent}%`}</td>
-                  <td className="num">{tax.base}</td>
-                </tr>
-              ))}
-              <tr>
-                <td>Subtotal sin impuestos</td>
-                <td className="num">{preview.subtotal}</td>
-              </tr>
-              <tr>
-                <td>Descuento</td>
-                <td className="num">{preview.totalDiscount}</td>
-              </tr>
-              {preview.taxes
-                .filter((tax) => tax.amount !== "0.00")
-                .map((tax) => (
-                  <tr key={`iva-${tax.rateCode}`}>
-                    {/* El catálogo describe la tarifa solo con su porcentaje ("15%"): el impuesto lo nombra la pantalla. */}
-                    <td>IVA {Number(tax.ratePercent)}%</td>
-                    <td className="num">{tax.amount}</td>
-                  </tr>
-                ))}
-              <tr>
-                <td>Total</td>
-                <td className="num" data-testid="total">
-                  {preview.total}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p className="field-hint">Vista previa. El total definitivo lo calcula el servidor al emitir.</p>
+          <PreviewTotals preview={preview} rateDescriptions={rateDescriptions} />
         </div>
       </div>
 

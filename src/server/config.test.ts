@@ -45,6 +45,15 @@ describe("readConfig", () => {
     }
   });
 
+  it("trusts one proxy in X-Forwarded-For unless told otherwise", () => {
+    expect(readConfig(VALID).trustedProxyHops).toBe(1);
+    expect(readConfig({ ...VALID, TRUSTED_PROXY_HOPS: "2" }).trustedProxyHops).toBe(2);
+    expect(readConfig({ ...VALID, TRUSTED_PROXY_HOPS: "" }).trustedProxyHops).toBe(1);
+    for (const bad of ["0", "-1", "abc", "1.5", "100"]) {
+      expect(() => readConfig({ ...VALID, TRUSTED_PROXY_HOPS: bad }), bad).toThrow("TRUSTED_PROXY_HOPS");
+    }
+  });
+
   it("refuses to serve the application without TLS anywhere but on this machine", () => {
     // Por http las cookies de sesión viajarían sin Secure.
     expect(() => readConfig({ ...VALID, APP_BASE_URL: "http://facturas.example.com" })).toThrow("APP_BASE_URL debe usar https");

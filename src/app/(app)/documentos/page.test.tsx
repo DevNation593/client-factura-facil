@@ -1,4 +1,5 @@
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { json, stubApi } from "@/test/api";
@@ -78,5 +79,39 @@ describe("Comprobantes", () => {
     renderWithTenant(<DocumentosPage />, { role: "AUDITOR" });
     await waitFor(() => expect(screen.getByText("Aún no se ha emitido ningún comprobante.")).toBeInTheDocument());
     expect(screen.queryByRole("link", { name: "Nueva factura" })).not.toBeInTheDocument();
+  });
+
+  it("shows the document type of each row", async () => {
+    stubApi({ "GET /documents": () => page([{ ...summary(1, "AUTHORIZED"), documentType: "04" }, summary(2, "AUTHORIZED")]) });
+    renderWithTenant(<DocumentosPage />);
+
+    expect(await screen.findByRole("columnheader", { name: "Tipo" })).toBeInTheDocument();
+    expect(screen.getByText("N. crédito")).toBeInTheDocument();
+    expect(screen.getByText("Factura")).toBeInTheDocument();
+  });
+
+  it("filters by type and goes back to the first page", async () => {
+    const api = stubApi({ "GET /documents": () => page([summary(1, "AUTHORIZED")], 45) });
+    renderWithTenant(<DocumentosPage />);
+    await screen.findByText("Autorizada");
+    expect(api.to("GET", "/documents")[0]?.query.has("documentType")).toBe(false);
+
+    await userEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    await waitFor(() => expect(api.to("GET", "/documents").at(-1)?.query.get("page")).toBe("1"));
+
+    const select = screen.getByRole("combobox", { name: "Tipo" });
+    expect(within(select).getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Todos los tipos",
+      "Facturas",
+      "Notas de crédito",
+      "Notas de débito",
+    ]);
+    await userEvent.selectOptions(select, "Notas de crédito");
+
+    await waitFor(() => {
+      const last = api.to("GET", "/documents").at(-1)!;
+      expect(last.query.get("documentType")).toBe("04");
+      expect(last.query.get("page")).toBe("0");
+    });
   });
 });

@@ -14,6 +14,8 @@ import { StateStamp } from "@/components/StateBadge";
 import { formatInstant, formatIssueDate } from "@/lib/dates";
 import { formatUnitPrice, plainDecimal } from "@/lib/decimal";
 import { availableArtifacts, canReissue, canRetry, describeState } from "@/lib/documentStates";
+import { documentTypeLabel } from "@/lib/documentTypes";
+import { catalogLabel } from "@/lib/catalogLabels";
 import { newDraft, saveDraft } from "@/lib/drafts";
 import { canBill, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
@@ -98,21 +100,36 @@ export default function DocumentoPage() {
   const invoice = document.data;
   const info = describeState(invoice.state);
   const billing = canBill(active);
+  const isInvoice = invoice.documentType === "01";
+  const modified = invoice.modifiedDocument;
   return (
     <>
       <div className="sheet-head">
         <h1>
-          Factura <span className="num">{invoice.number}</span>
+          {documentTypeLabel(invoice.documentType)} <span className="num">{invoice.number}</span>
         </h1>
         <StateStamp state={invoice.state} />
       </div>
       <p className="lead">{info.help}</p>
+      {modified ? (
+        <p>
+          Modifica a:{" "}
+          {modified.documentId ? <Link href={`/documentos/${modified.documentId}`}>Factura {modified.number}</Link> : <>Factura {modified.number}</>} del{" "}
+          {formatIssueDate(modified.issueDate)}
+        </p>
+      ) : null}
 
       <dl className="facts">
         <dt>Cliente</dt>
         <dd>
           {invoice.customer.name} ({invoice.customer.idNumber})
         </dd>
+        {invoice.reason ? (
+          <>
+            <dt>Motivo</dt>
+            <dd>{invoice.reason}</dd>
+          </>
+        ) : null}
         <dt>Fecha de emisión</dt>
         <dd>{formatIssueDate(invoice.issueDate)}</dd>
         <dt>Ambiente</dt>
@@ -141,45 +158,12 @@ export default function DocumentoPage() {
           Este comprobante fue rechazado y ya se emitió <Link href={`/documentos/${invoice.replacedByDocumentId}`}>la factura que lo reemplazó</Link>.
         </Notice>
       ) : null}
-      {billing && canReissue(invoice.state) && !invoice.replacedByDocumentId ? <ReissueAction invoice={invoice} tenantId={active.id} /> : null}
+      {isInvoice && billing && invoice.state === "AUTHORIZED" ? <NoteActions invoice={invoice} /> : null}
+      {isInvoice && billing && canReissue(invoice.state) && !invoice.replacedByDocumentId ? <ReissueAction invoice={invoice} tenantId={active.id} /> : null}
 
       <Downloads id={invoice.id} state={invoice.state} />
 
-      <h2>Detalle</h2>
-      <div className="table-scroll">
-        <table className="ruled">
-          <thead>
-            <tr>
-              <th scope="col">Código</th>
-              <th scope="col">Descripción</th>
-              <th scope="col" className="num">
-                Cantidad
-              </th>
-              <th scope="col" className="num">
-                Precio unitario
-              </th>
-              <th scope="col" className="num">
-                Descuento
-              </th>
-              <th scope="col" className="num">
-                Subtotal
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoice.lines.map((line) => (
-              <tr key={line.lineNo}>
-                <td>{line.mainCode}</td>
-                <td>{line.description}</td>
-                <td className="num">{plainDecimal(line.quantity)}</td>
-                <td className="num">{formatUnitPrice(line.unitPrice)}</td>
-                <td className="num">{line.discount}</td>
-                <td className="num">{line.subtotal}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {invoice.reasons ? <Reasons reasons={invoice.reasons} /> : <Lines lines={invoice.lines} />}
       <table className="ruled totals">
         <tbody>
           <tr>
@@ -203,6 +187,8 @@ export default function DocumentoPage() {
         </tbody>
       </table>
 
+      {invoice.reasons ? <PaymentSummary payments={invoice.payments} /> : null}
+
       <h2>Ante el SRI</h2>
       <ErrorNotice error={attempts.error} />
       <Attempts attempts={attempts.data ?? []} />
@@ -211,6 +197,124 @@ export default function DocumentoPage() {
       <ErrorNotice error={deliveries.error} />
       <Deliveries deliveries={deliveries.data ?? []} />
       {billing && invoice.state === "AUTHORIZED" ? <ResendAction id={invoice.id} onDone={afterAction} /> : null}
+    </>
+  );
+}
+
+type Line = Document["lines"][number];
+
+function Lines({ lines }: { lines: Line[] }) {
+  return (
+    <>
+      <h2>Detalle</h2>
+      <div className="table-scroll">
+        <table className="ruled">
+          <thead>
+            <tr>
+              <th scope="col">Código</th>
+              <th scope="col">Descripción</th>
+              <th scope="col" className="num">
+                Cantidad
+              </th>
+              <th scope="col" className="num">
+                Precio unitario
+              </th>
+              <th scope="col" className="num">
+                Descuento
+              </th>
+              <th scope="col" className="num">
+                Subtotal
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((line) => (
+              <tr key={line.lineNo}>
+                <td>{line.mainCode}</td>
+                <td>{line.description}</td>
+                <td className="num">{plainDecimal(line.quantity)}</td>
+                <td className="num">{formatUnitPrice(line.unitPrice)}</td>
+                <td className="num">{line.discount}</td>
+                <td className="num">{line.subtotal}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/** Los motivos de una nota de débito: cada uno con su valor y su IVA. */
+function Reasons({ reasons }: { reasons: NonNullable<Document["reasons"]> }) {
+  return (
+    <>
+      <h2>Motivos</h2>
+      <div className="table-scroll">
+        <table className="ruled">
+          <thead>
+            <tr>
+              <th scope="col">Motivo</th>
+              <th scope="col" className="num">
+                Valor
+              </th>
+              <th scope="col" className="num">
+                IVA
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {reasons.map((reason, index) => (
+              <tr key={index}>
+                <td>{reason.reason}</td>
+                <td className="num">{reason.value}</td>
+                <td className="num">{reason.taxAmount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/** Forma de pago de una nota de débito, con el nombre que le da el catálogo del SRI. */
+function PaymentSummary({ payments }: { payments: Document["payments"] }) {
+  const methods = useApi(() => unwrap(api.GET("/catalogs/payment-methods")), []);
+  return (
+    <>
+      <h2>Forma de pago</h2>
+      <ul>
+        {payments.map((payment, index) => {
+          const name = methods.data?.find((method) => method.code === payment.methodCode)?.name;
+          return (
+            <li key={index}>
+              {name ? catalogLabel(name) : payment.methodCode}: {payment.amount}
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+}
+
+/** Desde una factura autorizada se emiten sus notas de crédito y de débito. */
+function NoteActions({ invoice }: { invoice: Document }) {
+  return (
+    <>
+      {invoice.creditedTotal != null ? (
+        <p className="lead">
+          Acreditado ${invoice.creditedTotal} de ${invoice.total}
+        </p>
+      ) : null}
+      <p className="actions">
+        <Link className="btn" href={`/notas/nueva?tipo=credito&factura=${invoice.id}`}>
+          Nota de crédito
+        </Link>
+        <Link className="btn" href={`/notas/nueva?tipo=debito&factura=${invoice.id}`}>
+          Nota de débito
+        </Link>
+      </p>
     </>
   );
 }
