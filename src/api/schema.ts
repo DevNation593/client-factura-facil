@@ -484,6 +484,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/credit-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Emite una nota de crédito sobre una factura autorizada de la plataforma (invoiceId) o sobre una factura escrita a mano (modifiedDocument con customerId): la calcula como la factura, le asigna secuencial y clave de acceso y la deja en RESERVED. 202 significa aceptada para procesamiento, no autorizada por el SRI. Requiere rol OWNER, ADMIN o BILLER. */
+        post: operations["issueCreditNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/debit-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Emite una nota de débito sobre una factura autorizada de la plataforma (invoiceId) o sobre una factura escrita a mano (modifiedDocument con customerId): motivos con su valor y su tarifa de IVA, y un pago por el total. Le asigna secuencial y clave de acceso y la deja en RESERVED. 202 significa aceptada para procesamiento, no autorizada por el SRI. Requiere rol OWNER, ADMIN o BILLER. */
+        post: operations["issueDebitNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents": {
         parameters: {
             query?: never;
@@ -815,6 +849,15 @@ export interface components {
         };
         /** @description Importe o cantidad como cadena decimal, para no perder precisión. */
         Decimal: string;
+        /** @description Importe como cadena decimal, con hasta 12 enteros y 2 decimales. */
+        Amount: string;
+        /** @description Importe como cadena decimal; nulo en los comprobantes que no llevan totales (guía de remisión). */
+        NullableDecimal: string | null;
+        /**
+         * @description Código del SRI. 01 factura, 03 liquidación de compra, 04 nota de crédito, 05 nota de débito, 06 guía de remisión, 07 retención.
+         * @enum {string}
+         */
+        DocumentTypeCode: "01" | "03" | "04" | "05" | "06" | "07";
         TaxRate: {
             /** @description Impuesto: 2 es IVA. */
             taxCode: string;
@@ -905,9 +948,115 @@ export interface components {
             }[];
             /**
              * Format: uuid
-             * @description Comprobante de la misma empresa y del mismo emisor, en estado RETURNED, NOT_AUTHORIZED o XSD_INVALID, al que esta factura reemplaza. La nueva lleva su propio secuencial y su propia clave; el reemplazado no cambia. 409 REPLACED_DOCUMENT_NOT_REJECTED si está en otro estado, 409 REPLACED_DOCUMENT_OTHER_ISSUER si es de otro emisor y 409 DOCUMENT_ALREADY_REPLACED si ya tiene reemplazo.
+             * @description Comprobante de la misma empresa y del mismo emisor, en estado RETURNED, NOT_AUTHORIZED o XSD_INVALID, al que esta factura reemplaza. La nueva lleva su propio secuencial y su propia clave; el reemplazado no cambia. 409 REPLACED_DOCUMENT_OTHER_TYPE si es de otro tipo, 409 REPLACED_DOCUMENT_NOT_REJECTED si está en otro estado, 409 REPLACED_DOCUMENT_OTHER_ISSUER si es de otro emisor y 409 DOCUMENT_ALREADY_REPLACED si ya tiene reemplazo.
              */
             replacesDocumentId?: string | null;
+        };
+        /** @description Lleva invoiceId (factura autorizada de la plataforma, del mismo emisor; el comprador es el de la factura y no se envía customerId) o modifiedDocument con customerId (factura escrita a mano y su comprador del catálogo); nunca las dos cosas ni ninguna: 400 MODIFIED_DOCUMENT_REQUIRED. */
+        IssueCreditNoteRequest: {
+            /** Format: uuid */
+            taxpayerId: string;
+            /** @description Tres dígitos. */
+            establishmentCode: string;
+            /** @description Tres dígitos. */
+            emissionPointCode: string;
+            /**
+             * Format: date
+             * @description Por defecto hoy en Ecuador. No puede ser futura, ni anterior al último comprobante del punto, ni anterior a la fecha de la factura que se modifica.
+             */
+            issueDate?: string | null;
+            /** @description Razón de la modificación, sin saltos de línea ni otros caracteres de control. */
+            reason: string;
+            /**
+             * Format: uuid
+             * @description Factura de la plataforma que se modifica. Se toman de ella su número, su fecha, su comprador y sus líneas. La suma de las notas de crédito vigentes de la factura (todas menos las RETURNED, NOT_AUTHORIZED y XSD_INVALID) más esta no puede superar su total.
+             */
+            invoiceId?: string | null;
+            /** @description Factura escrita a mano que se modifica. */
+            modifiedDocument?: {
+                /**
+                 * @description Siempre 01: factura.
+                 * @enum {string}
+                 */
+                code: "01";
+                /** @description establecimiento-punto-secuencial, por ejemplo 001-002-000000123. */
+                number: string;
+                /**
+                 * Format: date
+                 * @description No puede ser posterior a la de la nota.
+                 */
+                issueDate: string;
+            } | null;
+            /**
+             * Format: uuid
+             * @description Comprador del catálogo; solo con modifiedDocument.
+             */
+            customerId?: string | null;
+            /** @description Con invoiceId, cada línea lleva invoiceLineNo (sin repetirlo) y no productId: código, descripción, producto y tarifa de IVA se copian de la línea de la factura; la cantidad y el precio unitario no pueden superar los originales, ni el descuento bajar del original prorrateado por la cantidad (422 CREDIT_LINE_EXCEEDS_INVOICE). Con modifiedDocument, cada línea lleva productId y no invoiceLineNo, como en la factura. */
+            lines: {
+                /** @description Número de la línea de la factura, desde 1. */
+                invoiceLineNo?: number | null;
+                /** Format: uuid */
+                productId?: string | null;
+                quantity: components["schemas"]["Decimal"];
+                /** @description Por defecto, el de la línea de la factura (o el precio del producto, a mano). Hasta 6 decimales. */
+                unitPrice?: string | null;
+                /** @description Por defecto, el de la línea de la factura en proporción a la cantidad (descuento original × cantidad / cantidad original, a dos decimales), o 0.00 a mano. Con invoiceId, ese prorrateo es también el mínimo: un descuento menor da 422 CREDIT_LINE_EXCEEDS_INVOICE. Hasta 12 enteros y 2 decimales. */
+                discount?: string | null;
+            }[];
+        };
+        /** @description Lleva invoiceId (factura autorizada de la plataforma, del mismo emisor; el comprador es el de la factura y no se envía customerId) o modifiedDocument con customerId (factura escrita a mano y su comprador del catálogo); nunca las dos cosas ni ninguna: 400 MODIFIED_DOCUMENT_REQUIRED. */
+        IssueDebitNoteRequest: {
+            /** Format: uuid */
+            taxpayerId: string;
+            /** @description Tres dígitos. */
+            establishmentCode: string;
+            /** @description Tres dígitos. */
+            emissionPointCode: string;
+            /**
+             * Format: date
+             * @description Por defecto hoy en Ecuador. No puede ser futura, ni anterior al último comprobante del punto, ni anterior a la fecha de la factura que se modifica.
+             */
+            issueDate?: string | null;
+            /**
+             * Format: uuid
+             * @description Factura de la plataforma que se modifica. Se toman de ella su número, su fecha y su comprador.
+             */
+            invoiceId?: string | null;
+            /** @description Factura escrita a mano que se modifica. */
+            modifiedDocument?: {
+                /**
+                 * @description Siempre 01: factura.
+                 * @enum {string}
+                 */
+                code: "01";
+                /** @description establecimiento-punto-secuencial, por ejemplo 001-002-000000123. */
+                number: string;
+                /**
+                 * Format: date
+                 * @description No puede ser posterior a la de la nota.
+                 */
+                issueDate: string;
+            } | null;
+            /**
+             * Format: uuid
+             * @description Comprador del catálogo; solo con modifiedDocument.
+             */
+            customerId?: string | null;
+            /** @description Motivos de la nota. El IVA se calcula con la tarifa de cada motivo y se agrupa por tarifa, con el redondeo de la factura. */
+            reasons: {
+                /** @description Razón del cobro, sin saltos de línea ni otros caracteres de control. */
+                reason: string;
+                value: components["schemas"]["Amount"];
+                /** @description Código de la tarifa de IVA del catálogo (tabla 17), por ejemplo 4 para el 15 %. */
+                ivaRateCode: string;
+            }[];
+            /** @description Exactamente un pago, igual al total que calcula el servidor. */
+            payments: {
+                /** @description Forma de pago del catálogo (ficha, tabla 24). */
+                methodCode: string;
+                amount: components["schemas"]["Amount"];
+            }[];
         };
         IssuedDocument: {
             /** Format: uuid */
@@ -919,14 +1068,14 @@ export interface components {
         DocumentSummary: {
             /** Format: uuid */
             id: string;
-            documentType: string;
+            documentType: components["schemas"]["DocumentTypeCode"];
             state: components["schemas"]["DocumentState"];
             /** @description establecimiento-punto-secuencial, por ejemplo 001-002-000000123. */
             number: string;
             /** Format: date */
             issueDate: string;
             customerName: string;
-            total: components["schemas"]["Decimal"];
+            total: components["schemas"]["NullableDecimal"];
         };
         /**
          * @description Estado interno del comprobante. RESERVED (secuencial y clave asignados), GENERATED (XML válido), SIGNED (firmado; aquí espera si la transmisión del ambiente no está habilitada), SENDING (envío en curso o de resultado incierto), RECEIVED (el SRI lo recibió; pendiente de autorización), AUTHORIZED. Estados de fallo: XSD_INVALID, SIGNATURE_FAILED, RETURNED (la recepción lo devolvió) y NOT_AUTHORIZED.
@@ -994,7 +1143,7 @@ export interface components {
         Document: {
             /** Format: uuid */
             id: string;
-            documentType: string;
+            documentType: components["schemas"]["DocumentTypeCode"];
             state: components["schemas"]["DocumentState"];
             /** @enum {string} */
             environment: "1" | "2";
@@ -1035,8 +1184,8 @@ export interface components {
                 idNumber: string;
                 name: string;
             };
-            subtotal: components["schemas"]["Decimal"];
-            totalDiscount: components["schemas"]["Decimal"];
+            subtotal: components["schemas"]["NullableDecimal"];
+            totalDiscount: components["schemas"]["NullableDecimal"];
             taxes: {
                 taxCode: string;
                 rateCode: string;
@@ -1044,10 +1193,12 @@ export interface components {
                 base: components["schemas"]["Decimal"];
                 amount: components["schemas"]["Decimal"];
             }[];
-            totalTax: components["schemas"]["Decimal"];
-            total: components["schemas"]["Decimal"];
+            totalTax: components["schemas"]["NullableDecimal"];
+            total: components["schemas"]["NullableDecimal"];
             lines: {
                 lineNo: number;
+                /** @description Línea de la factura que corrige (solo en las líneas de una nota de crédito sobre una factura de la plataforma). */
+                invoiceLineNo?: number | null;
                 /**
                  * Format: uuid
                  * @description Producto del catálogo del que salió la línea.
@@ -1068,6 +1219,35 @@ export interface components {
                 methodCode: string;
                 amount: components["schemas"]["Decimal"];
             }[];
+            /** @description Factura que modifica la nota; nulo en los demás comprobantes. */
+            modifiedDocument?: {
+                /**
+                 * @description Siempre 01: factura.
+                 * @enum {string}
+                 */
+                code: "01";
+                /** @description Número de la factura, EEE-PPP-SSSSSSSSS. */
+                number: string;
+                /** Format: date */
+                issueDate: string;
+                /**
+                 * Format: uuid
+                 * @description Factura de la plataforma; nulo si se escribió a mano.
+                 */
+                documentId?: string | null;
+            } | null;
+            /** @description Razón de modificación; solo en la nota de crédito. */
+            reason?: string | null;
+            /** @description Motivos de la nota de débito, con su IVA; nulo en los demás comprobantes. */
+            reasons?: {
+                reason: string;
+                value: components["schemas"]["Decimal"];
+                taxRateCode: string;
+                taxRate: components["schemas"]["Decimal"];
+                taxAmount: components["schemas"]["Decimal"];
+            }[] | null;
+            /** @description Solo en facturas. Suma de las notas de crédito vigentes que la modifican (0.00 si no hay). */
+            creditedTotal?: components["schemas"]["NullableDecimal"];
         };
         UploadCertificateRequest: {
             /** Format: uuid */
@@ -2516,7 +2696,127 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
-            /** @description Regla fiscal incumplida. errorCode: UNSUPPORTED_CURRENCY, INVALID_ISSUE_DATE, EMISSION_POINT_DISABLED, INVALID_LINE, AMOUNT_TOO_LARGE, TAX_RATE_UNKNOWN, PAYMENT_METHOD_UNKNOWN, INVALID_PAYMENT, PAYMENTS_MISMATCH, FINAL_CONSUMER_LIMIT_EXCEEDED o SEQUENCE_EXHAUSTED. */
+            /** @description Regla fiscal incumplida. errorCode: UNSUPPORTED_CURRENCY, INVALID_ISSUE_DATE, EMISSION_POINT_DISABLED, INVALID_LINE, AMOUNT_TOO_LARGE, TAX_RATE_UNKNOWN, PAYMENT_METHOD_UNKNOWN, INVALID_PAYMENT, PAYMENTS_MISMATCH, FINAL_CONSUMER_LIMIT_EXCEEDED, SEQUENCE_EXHAUSTED o DOCUMENT_XML_INVALID (el XML generado no pasó el esquema del SRI; no se consume secuencial). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    issueCreditNote: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
+                "X-Tenant-Id"?: components["parameters"]["TenantId"];
+                /** @description Identifica el intento de emisión (hasta 100 caracteres: letras, dígitos y . _ : -). Repetirlo con el mismo cuerpo devuelve el mismo documento; con otro cuerpo responde 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueCreditNoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Nota de crédito aceptada y reservada. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedDocument"];
+                };
+            };
+            /** @description Petición inválida. errorCode: VALIDATION_FAILED (también si una línea no tiene la forma de su caso o repite una línea de la factura), MODIFIED_DOCUMENT_REQUIRED (no viene invoiceId ni modifiedDocument con customerId, o vienen los dos, o invoiceId con customerId), IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_INVALID o MALFORMED_REQUEST. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            /** @description El emisor, el punto de emisión, la factura (invoiceId), el cliente o un producto no existen en la empresa. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: components["responses"]["Problem"];
+            /** @description Regla fiscal incumplida. errorCode: MODIFIED_DOCUMENT_NOT_INVOICE (invoiceId no es una factura), MODIFIED_INVOICE_OTHER_ISSUER (la factura es de otro emisor de la empresa), MODIFIED_INVOICE_NOT_AUTHORIZED (la factura no está autorizada), INVALID_MODIFIED_DOCUMENT_DATE (la factura es posterior a la nota), CREDIT_LINE_UNKNOWN (la factura no tiene esa línea), CREDIT_LINE_EXCEEDS_INVOICE (cantidad o precio unitario mayor que el de la línea original, o descuento menor que el original prorrateado por la cantidad), CREDIT_EXCEEDS_INVOICE (con las notas de crédito vigentes de la factura se superaría su total), UNSUPPORTED_CURRENCY, INVALID_ISSUE_DATE, EMISSION_POINT_DISABLED, INVALID_LINE, AMOUNT_TOO_LARGE, TAX_RATE_UNKNOWN, SEQUENCE_EXHAUSTED o DOCUMENT_XML_INVALID (el XML generado no pasó el esquema del SRI; no se consume secuencial). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    issueDebitNote: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
+                "X-Tenant-Id"?: components["parameters"]["TenantId"];
+                /** @description Identifica el intento de emisión (hasta 100 caracteres: letras, dígitos y . _ : -). Repetirlo con el mismo cuerpo devuelve el mismo documento; con otro cuerpo responde 409 IDEMPOTENCY_KEY_REUSED. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueDebitNoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Nota de débito aceptada y reservada. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedDocument"];
+                };
+            };
+            /** @description Petición inválida. errorCode: VALIDATION_FAILED, MODIFIED_DOCUMENT_REQUIRED (no viene invoiceId ni modifiedDocument con customerId, o vienen los dos, o invoiceId con customerId), IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_INVALID o MALFORMED_REQUEST. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            /** @description El emisor, el punto de emisión, la factura (invoiceId) o el cliente no existen en la empresa. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            409: components["responses"]["Problem"];
+            /** @description Regla fiscal incumplida. errorCode: MODIFIED_DOCUMENT_NOT_INVOICE (invoiceId no es una factura), MODIFIED_INVOICE_OTHER_ISSUER (la factura es de otro emisor de la empresa), MODIFIED_INVOICE_NOT_AUTHORIZED (la factura no está autorizada), INVALID_MODIFIED_DOCUMENT_DATE (la factura es posterior a la nota), PAYMENT_METHOD_UNKNOWN, PAYMENTS_MISMATCH (el pago no es igual al total), FINAL_CONSUMER_LIMIT_EXCEEDED (comprador consumidor final y total sobre el límite), TAX_RATE_UNKNOWN, INVALID_LINE (valor del motivo no positivo), AMOUNT_TOO_LARGE, UNSUPPORTED_CURRENCY, INVALID_ISSUE_DATE, EMISSION_POINT_DISABLED, SEQUENCE_EXHAUSTED o DOCUMENT_XML_INVALID (el XML generado no pasó el esquema del SRI; no se consume secuencial). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2533,6 +2833,8 @@ export interface operations {
             query?: {
                 page?: number;
                 size?: number;
+                /** @description Solo los comprobantes de este tipo; sin él salen todos. Un código desconocido responde 400. */
+                documentType?: components["schemas"]["DocumentTypeCode"];
             };
             header?: {
                 /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */

@@ -68,6 +68,7 @@ function Rail({ userName }: { userName: string | null }) {
         <NavLink href="/documentos">Comprobantes</NavLink>
         {canBill(active) ? <NavLink href="/facturas/nueva">Nueva factura</NavLink> : null}
         {canBill(active) ? <NavLink href="/facturas/borradores">Borradores</NavLink> : null}
+        {canBill(active) ? <NavLink href="/notas/nueva">Nueva nota</NavLink> : null}
         <span className="rail-group">Catálogos</span>
         <NavLink href="/clientes">Clientes</NavLink>
         <NavLink href="/productos">Productos</NavLink>

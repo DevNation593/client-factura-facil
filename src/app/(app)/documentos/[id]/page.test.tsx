@@ -288,4 +288,84 @@ describe("Comprobante", () => {
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("No se encontró ese comprobante en esta empresa."));
     expect(screen.getByRole("link", { name: "Volver a los comprobantes" })).toHaveAttribute("href", "/documentos");
   });
+
+  const INVOICE_ID = "55555555-5555-4555-8555-555555555555";
+
+  function note(extra: Record<string, unknown>) {
+    return invoice("AUTHORIZED", {
+      number: "001-001-000000004",
+      modifiedDocument: { code: "01", number: "001-001-000000123", issueDate: "2026-10-01", documentId: INVOICE_ID },
+      ...extra,
+    });
+  }
+
+  it("shows a credit note with the invoice it modifies, its reason and lines", async () => {
+    api(
+      note({
+        documentType: "04",
+                reason: "Devolución de mercadería",
+        lines: [{ ...invoice("X").lines[0], invoiceLineNo: 1 }],
+      }),
+    );
+    renderWithTenant(<DocumentoPage />);
+
+    expect(await screen.findByRole("heading", { name: "Nota de crédito 001-001-000000004" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Factura 001-001-000000123" }).closest("p")).toHaveTextContent("Modifica a: Factura 001-001-000000123 del 01/10/2026");
+    expect(screen.getByRole("link", { name: "Factura 001-001-000000123" })).toHaveAttribute("href", `/documentos/${INVOICE_ID}`);
+    expect(screen.getByText("Devolución de mercadería")).toBeInTheDocument();
+    expect(screen.getByRole("row", { name: /SRV-001/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Corregir y emitir de nuevo" })).not.toBeInTheDocument();
+  });
+
+  it("does not offer to reissue a rejected credit note", async () => {
+    api(note({ documentType: "04", state: "RETURNED", reason: "x" }));
+    renderWithTenant(<DocumentoPage />);
+
+    await screen.findByRole("heading", { name: "Nota de crédito 001-001-000000004" });
+    expect(screen.queryByRole("button", { name: "Corregir y emitir de nuevo" })).not.toBeInTheDocument();
+  });
+
+  it("shows a debit note's reasons and its payment method", async () => {
+    api(
+      note({
+        documentType: "05",
+        lines: [],
+        reasons: [{ reason: "Intereses de mora", value: "10.00", taxRateCode: "4", taxRate: "15.00", taxAmount: "1.50" }],
+        payments: [{ methodCode: "20", amount: "11.50" }],
+        total: "11.50",
+      }),
+      { "GET /catalogs/payment-methods": () => json(200, [{ code: "20", name: "OTROS CON UTILIZACION DEL SISTEMA FINANCIERO", validFrom: "2020-01-01" }]) },
+    );
+    renderWithTenant(<DocumentoPage />);
+
+    expect(await screen.findByRole("heading", { name: "Nota de débito 001-001-000000004" })).toBeInTheDocument();
+    const row = screen.getByText("Intereses de mora").closest("tr")!;
+    expect(within(row).getByText("10.00")).toBeInTheDocument();
+    expect(within(row).getByText("1.50")).toBeInTheDocument();
+    expect(await screen.findByText(/Otros con utilización del sistema financiero/i)).toBeInTheDocument();
+  });
+
+  it("offers credit and debit notes on an authorized invoice, with what was already credited", async () => {
+    api(invoice("AUTHORIZED", { creditedTotal: "5.00" }));
+    renderWithTenant(<DocumentoPage />);
+
+    expect(await screen.findByText("Acreditado $5.00 de $23.00")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Nota de crédito" })).toHaveAttribute("href", `/notas/nueva?tipo=credito&factura=${ID}`);
+    expect(screen.getByRole("link", { name: "Nota de débito" })).toHaveAttribute("href", `/notas/nueva?tipo=debito&factura=${ID}`);
+  });
+
+  it("does not offer notes on an unauthorized invoice or to someone who cannot bill", async () => {
+    api(invoice("RETURNED", { creditedTotal: "0.00" }));
+    const { unmount } = renderWithTenant(<DocumentoPage />);
+    await screen.findByRole("heading", { name: "Factura 001-002-000000123" });
+    expect(screen.queryByRole("link", { name: "Nota de crédito" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Nota de débito" })).not.toBeInTheDocument();
+    unmount();
+
+    api(invoice("AUTHORIZED", { creditedTotal: "0.00" }));
+    renderWithTenant(<DocumentoPage />, { role: "AUDITOR" });
+    await screen.findByRole("heading", { name: "Factura 001-002-000000123" });
+    expect(screen.queryByRole("link", { name: "Nota de crédito" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Nota de débito" })).not.toBeInTheDocument();
+  });
 });
