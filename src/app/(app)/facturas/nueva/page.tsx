@@ -90,6 +90,8 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
   const inFlight = useRef(false);
   /** Tras emitir, el borrador ya no existe: no hay que volver a guardarlo. */
   const emitted = useRef(false);
+  /** Lo cambiado que aún espera su guardado. */
+  const pending = useRef<Draft | undefined>(undefined);
 
   const issuer = useApi(loadIssuer, [tenantId]);
 
@@ -136,7 +138,9 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
     if (!dirty) {
       return;
     }
+    pending.current = draft;
     const timer = setTimeout(() => {
+      pending.current = undefined;
       if (emitted.current) {
         return;
       }
@@ -148,6 +152,22 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
     }, 400);
     return () => clearTimeout(timer);
   }, [draft, dirty, tenantId]);
+
+  // Quien sale antes de esos 400 ms, a otra pantalla o cerrando la pestaña, no pierde lo último que cambió.
+  useEffect(() => {
+    function flush() {
+      const unsavedDraft = pending.current;
+      pending.current = undefined;
+      if (unsavedDraft && !emitted.current) {
+        saveDraft(tenantId, unsavedDraft);
+      }
+    }
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [tenantId]);
 
   function change(patch: Partial<Draft>) {
     setDraft((current) => ({ ...current, ...patch }));
