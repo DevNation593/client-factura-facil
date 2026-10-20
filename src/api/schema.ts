@@ -849,6 +849,8 @@ export interface components {
         };
         /** @description Importe o cantidad como cadena decimal, para no perder precisión. */
         Decimal: string;
+        /** @description Importe como cadena decimal, con hasta 12 enteros y 2 decimales. */
+        Amount: string;
         /** @description Importe como cadena decimal; nulo en los comprobantes que no llevan totales (guía de remisión). */
         NullableDecimal: string | null;
         /**
@@ -990,7 +992,7 @@ export interface components {
              * @description Comprador del catálogo; solo con modifiedDocument.
              */
             customerId?: string | null;
-            /** @description Con invoiceId, cada línea lleva invoiceLineNo (sin repetirlo) y no productId: código, descripción, producto y tarifa de IVA se copian de la línea de la factura, y la cantidad y el precio unitario no pueden superar los originales. Con modifiedDocument, cada línea lleva productId y no invoiceLineNo, como en la factura. */
+            /** @description Con invoiceId, cada línea lleva invoiceLineNo (sin repetirlo) y no productId: código, descripción, producto y tarifa de IVA se copian de la línea de la factura; la cantidad y el precio unitario no pueden superar los originales, ni el descuento bajar del original prorrateado por la cantidad (422 CREDIT_LINE_EXCEEDS_INVOICE). Con modifiedDocument, cada línea lleva productId y no invoiceLineNo, como en la factura. */
             lines: {
                 /** @description Número de la línea de la factura, desde 1. */
                 invoiceLineNo?: number | null;
@@ -999,7 +1001,7 @@ export interface components {
                 quantity: components["schemas"]["Decimal"];
                 /** @description Por defecto, el de la línea de la factura (o el precio del producto, a mano). Hasta 6 decimales. */
                 unitPrice?: string | null;
-                /** @description Por defecto, el de la línea de la factura en proporción a la cantidad (descuento original × cantidad / cantidad original, a dos decimales), o 0.00 a mano. Hasta 2 decimales. */
+                /** @description Por defecto, el de la línea de la factura en proporción a la cantidad (descuento original × cantidad / cantidad original, a dos decimales), o 0.00 a mano. Con invoiceId, ese prorrateo es también el mínimo: un descuento menor da 422 CREDIT_LINE_EXCEEDS_INVOICE. Hasta 12 enteros y 2 decimales. */
                 discount?: string | null;
             }[];
         };
@@ -1045,7 +1047,7 @@ export interface components {
             reasons: {
                 /** @description Razón del cobro, sin saltos de línea ni otros caracteres de control. */
                 reason: string;
-                value: components["schemas"]["Decimal"];
+                value: components["schemas"]["Amount"];
                 /** @description Código de la tarifa de IVA del catálogo (tabla 17), por ejemplo 4 para el 15 %. */
                 ivaRateCode: string;
             }[];
@@ -1053,7 +1055,7 @@ export interface components {
             payments: {
                 /** @description Forma de pago del catálogo (ficha, tabla 24). */
                 methodCode: string;
-                amount: components["schemas"]["Decimal"];
+                amount: components["schemas"]["Amount"];
             }[];
         };
         IssuedDocument: {
@@ -2754,7 +2756,7 @@ export interface operations {
                 };
             };
             409: components["responses"]["Problem"];
-            /** @description Regla fiscal incumplida. errorCode: MODIFIED_DOCUMENT_NOT_INVOICE (invoiceId no es una factura), MODIFIED_INVOICE_OTHER_ISSUER (la factura es de otro emisor de la empresa), MODIFIED_INVOICE_NOT_AUTHORIZED (la factura no está autorizada), INVALID_MODIFIED_DOCUMENT_DATE (la factura es posterior a la nota), CREDIT_LINE_UNKNOWN (la factura no tiene esa línea), CREDIT_LINE_EXCEEDS_INVOICE (cantidad o precio unitario mayor que el de la línea original), CREDIT_EXCEEDS_INVOICE (con las notas de crédito vigentes de la factura se superaría su total), UNSUPPORTED_CURRENCY, INVALID_ISSUE_DATE, EMISSION_POINT_DISABLED, INVALID_LINE, AMOUNT_TOO_LARGE, TAX_RATE_UNKNOWN, SEQUENCE_EXHAUSTED o DOCUMENT_XML_INVALID (el XML generado no pasó el esquema del SRI; no se consume secuencial). */
+            /** @description Regla fiscal incumplida. errorCode: MODIFIED_DOCUMENT_NOT_INVOICE (invoiceId no es una factura), MODIFIED_INVOICE_OTHER_ISSUER (la factura es de otro emisor de la empresa), MODIFIED_INVOICE_NOT_AUTHORIZED (la factura no está autorizada), INVALID_MODIFIED_DOCUMENT_DATE (la factura es posterior a la nota), CREDIT_LINE_UNKNOWN (la factura no tiene esa línea), CREDIT_LINE_EXCEEDS_INVOICE (cantidad o precio unitario mayor que el de la línea original, o descuento menor que el original prorrateado por la cantidad), CREDIT_EXCEEDS_INVOICE (con las notas de crédito vigentes de la factura se superaría su total), UNSUPPORTED_CURRENCY, INVALID_ISSUE_DATE, EMISSION_POINT_DISABLED, INVALID_LINE, AMOUNT_TOO_LARGE, TAX_RATE_UNKNOWN, SEQUENCE_EXHAUSTED o DOCUMENT_XML_INVALID (el XML generado no pasó el esquema del SRI; no se consume secuencial). */
             422: {
                 headers: {
                     [name: string]: unknown;

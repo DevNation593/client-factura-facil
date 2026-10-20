@@ -142,6 +142,37 @@ describe("Nota de crédito", () => {
     expect(stub.to("POST", "/credit-notes")).toHaveLength(0);
   });
 
+  it("theDiscountCannotGoBelowTheProratedOne", async () => {
+    route.search = `?factura=${INVOICE_ID}`;
+    const stub = api(() => json(202, ISSUED));
+    renderWithTenant(<NuevaNotaPage />);
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Acreditar la línea 2/ }));
+    await userEvent.type(screen.getByLabelText("Motivo"), "Devolución");
+    const quantity = screen.getByLabelText("Cantidad de la línea 2");
+    await userEvent.clear(quantity);
+    await userEvent.type(quantity, "2");
+    const discount = screen.getByLabelText("Descuento de la línea 2");
+    // 1.50 × 2 / 3: con menos descuento, la línea acreditaría más que lo facturado.
+    expect(discount).toHaveValue("1.00");
+    await waitFor(() => expect(emitButton()).toBeEnabled());
+
+    await userEvent.clear(discount);
+    await userEvent.type(discount, "0");
+    expect(discount).toHaveAccessibleDescription("El descuento no puede ser menor que 1.00");
+    expect(emitButton()).toBeDisabled();
+    expect(emitButton()).toHaveAccessibleDescription(/que ninguna línea supere a la de la factura/);
+
+    // Vacío se envía como 0.00: tampoco vale.
+    await userEvent.clear(discount);
+    expect(discount).toHaveAccessibleDescription("El descuento no puede ser menor que 1.00");
+    await userEvent.click(emitButton());
+    expect(stub.to("POST", "/credit-notes")).toHaveLength(0);
+
+    await userEvent.type(discount, "1.20");
+    expect(discount).not.toHaveAccessibleDescription();
+    expect(emitButton()).toBeEnabled();
+  });
+
   it("noBalanceDisablesEmit", async () => {
     route.search = `?factura=${INVOICE_ID}`;
     api(() => json(202, ISSUED), invoice({ creditedTotal: "49.50" }));

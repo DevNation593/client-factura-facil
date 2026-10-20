@@ -10,7 +10,7 @@ import { ErrorNotice, Notice } from "@/components/Notice";
 import { PreviewTotals } from "@/components/PreviewTotals";
 import { emptyProductLine, ProductLines, type ProductLine } from "@/components/ProductLines";
 import { availableBalance, prorateDiscount } from "@/lib/creditNote";
-import { compare, formatUnitPrice, parse, plainDecimal } from "@/lib/decimal";
+import { compare, formatUnitPrice, parse, plainDecimal, ZERO } from "@/lib/decimal";
 import { normalizeInvoiceNumber } from "@/lib/invoiceNumber";
 import { previewInvoice } from "@/lib/invoicePreview";
 import { loadIssuer, type Point } from "@/lib/issuer";
@@ -61,18 +61,30 @@ function creditLines(invoice: Document): CreditLine[] {
   }));
 }
 
-/** Errores de una línea marcada que superaría a la de la factura. */
-function lineError(line: CreditLine, original: Document["lines"][number]): { quantity?: string; unitPrice?: string } {
+/** Errores de una línea marcada, por campo. */
+type LineErrors = { quantity?: string; unitPrice?: string; discount?: string };
+
+/**
+ * Errores de una línea marcada que superaría a la de la factura: más cantidad, más precio o menos
+ * descuento que el original prorrateado por la cantidad (un descuento vacío se envía como 0.00).
+ */
+function lineError(line: CreditLine, original: Document["lines"][number]): LineErrors {
   const quantity = parse(line.quantity, 6);
   const unitPrice = parse(line.unitPrice, 6);
+  const discount = line.discount.trim() === "" ? ZERO : parse(line.discount, 2);
   const originalQuantity = parse(original.quantity, 6);
   const originalPrice = parse(original.unitPrice, 6);
+  const minimumDiscount = prorateDiscount(original.discount, line.quantity, original.quantity);
+  const minimum = minimumDiscount === null ? null : parse(minimumDiscount, 2);
   return {
     quantity: quantity && originalQuantity && compare(quantity, originalQuantity) > 0
       ? `No puede superar la cantidad facturada (${plainDecimal(original.quantity)})`
       : undefined,
     unitPrice: unitPrice && originalPrice && compare(unitPrice, originalPrice) > 0
       ? `No puede superar el precio facturado (${formatUnitPrice(original.unitPrice)})`
+      : undefined,
+    discount: discount && minimum && compare(discount, minimum) < 0
+      ? `El descuento no puede ser menor que ${minimumDiscount}`
       : undefined,
   };
 }
@@ -134,8 +146,8 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
 
   // Con factura: solo cuentan las líneas marcadas.
   const selected = invoice ? lines.flatMap((line, index) => (line.selected ? [index] : [])) : [];
-  const errors = invoice ? lines.map((line, index) => (line.selected && invoice.lines[index] ? lineError(line, invoice.lines[index]) : {})) : [];
-  const hasLineErrors = errors.some((lineErrors) => lineErrors.quantity !== undefined || lineErrors.unitPrice !== undefined);
+  const errors: LineErrors[] = invoice ? lines.map((line, index) => (line.selected && invoice.lines[index] ? lineError(line, invoice.lines[index]) : {})) : [];
+  const hasLineErrors = errors.some((lineErrors) => Object.values(lineErrors).some((message) => message !== undefined));
   const preview = invoice
     ? previewInvoice(
       selected.map((index) => ({
@@ -304,7 +316,7 @@ function InvoiceLines({
 }: {
   invoice: Document;
   lines: CreditLine[];
-  errors: { quantity?: string; unitPrice?: string }[];
+  errors: LineErrors[];
   subtotals: Map<number, string | null>;
   onToggle: (index: number, checked: boolean) => void;
   onQuantity: (index: number, value: string) => void;
@@ -344,6 +356,7 @@ function InvoiceLines({
             const lineErrors = errors[index] ?? {};
             const quantityError = `${id}-cantidad-${index}`;
             const priceError = `${id}-precio-${index}`;
+            const discountError = `${id}-descuento-${index}`;
             return (
               <tr key={original.lineNo} className={line.selected ? undefined : "muted"}>
                 <td>
@@ -401,8 +414,15 @@ function InvoiceLines({
                     size={8}
                     disabled={!line.selected}
                     value={line.discount}
+                    aria-invalid={lineErrors.discount ? true : undefined}
+                    aria-describedby={lineErrors.discount ? discountError : undefined}
                     onChange={(event) => onDiscount(index, event.target.value)}
                   />
+                  {lineErrors.discount ? (
+                    <p className="field-error" id={discountError}>
+                      {lineErrors.discount}
+                    </p>
+                  ) : null}
                 </td>
                 <td className="num">{line.selected ? (subtotals.get(index) ?? "Incompleta") : "—"}</td>
               </tr>
