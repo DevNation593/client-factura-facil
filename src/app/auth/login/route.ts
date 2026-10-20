@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   if (form instanceof NextResponse) {
     return form;
   }
-  const result = await login(config, text(form, "email"), text(form, "password"), clientIp(request));
+  const result = await login(config, text(form, "email"), text(form, "password"), clientIp(request, config));
   if ("problem" in result) {
     logEvent("warn", "login.failed", { reason: result.problem.errorCode });
     return problemResponse(result.problem);
