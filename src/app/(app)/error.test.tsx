@@ -13,7 +13,7 @@ describe("pantalla de error", () => {
     // El detalle técnico no se enseña al usuario; el código sí, para soporte.
     expect(screen.queryByText(/Cannot read properties/)).not.toBeInTheDocument();
     expect(screen.getByText(/abc123/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Ir a los comprobantes" })).toHaveAttribute("href", "/documentos");
+    expect(screen.getByRole("link", { name: "Ir a los comprobantes" })).toHaveAttribute("href", "/documents");
 
     await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
     expect(reset).toHaveBeenCalledTimes(1);
@@ -22,6 +22,6 @@ describe("pantalla de error", () => {
   it("offers the saved drafts, where unsent work is", () => {
     render(<ErrorPage error={new Error("x")} reset={() => {}} />);
 
-    expect(screen.getByRole("link", { name: "Ver borradores" })).toHaveAttribute("href", "/facturas/borradores");
+    expect(screen.getByRole("link", { name: "Ver borradores" })).toHaveAttribute("href", "/invoices/drafts");
   });
 });

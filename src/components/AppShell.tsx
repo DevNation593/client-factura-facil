@@ -32,7 +32,7 @@ function Rail({ userName }: { userName: string | null }) {
       return;
     }
     setLeaving(true);
-    let destination = "/ingresar";
+    let destination = "/sign-in";
     try {
       const response = await fetch("/auth/logout", { method: "POST", headers: { "X-Requested-With": "einvoice-web" } });
       if (response.ok) {
@@ -57,7 +57,7 @@ function Rail({ userName }: { userName: string | null }) {
             <span>{ROLE_LABELS[active.role] ?? active.role}</span>
             {tenants.length > 1 ? (
               <div>
-                <Link href="/empresas">Cambiar de empresa</Link>
+                <Link href="/companies">Cambiar de empresa</Link>
               </div>
             ) : null}
           </>
@@ -75,23 +75,23 @@ function Rail({ userName }: { userName: string | null }) {
         {canBill(active) ? (
           <>
             <span className="rail-group">Emisión</span>
-            <NavLink href="/facturas/nueva">Nueva factura</NavLink>
-            <NavLink href="/facturas/borradores">Borradores</NavLink>
-            <NavLink href="/notas/nueva">Nueva nota</NavLink>
+            <NavLink href="/invoices/new">Nueva factura</NavLink>
+            <NavLink href="/invoices/drafts">Borradores</NavLink>
+            <NavLink href="/notes/new">Nueva nota</NavLink>
           </>
         ) : null}
         <span className="rail-group">Catálogos</span>
-        <NavLink href="/clientes">Clientes</NavLink>
-        <NavLink href="/productos">Productos</NavLink>
+        <NavLink href="/customers">Clientes</NavLink>
+        <NavLink href="/products">Productos</NavLink>
         <span className="rail-group">Configuración</span>
-        <NavLink href="/configuracion/emisor">Emisor</NavLink>
-        <NavLink href="/configuracion/certificado">Certificado</NavLink>
-        {canWrite(active) ? <NavLink href="/integraciones">Integraciones</NavLink> : null}
-        <NavLink href="/empresas">Empresas</NavLink>
+        <NavLink href="/settings/issuer">Emisor</NavLink>
+        <NavLink href="/settings/certificate">Certificado</NavLink>
+        {canWrite(active) ? <NavLink href="/integrations">Integraciones</NavLink> : null}
+        <NavLink href="/companies">Empresas</NavLink>
       </nav>
       <div className="rail-user">
         {userName ? <div>{userName}</div> : null}
-        <NavLink href="/cuenta">Mi cuenta</NavLink>
+        <NavLink href="/account">Mi cuenta</NavLink>
         <button type="button" onClick={signOut} disabled={leaving}>
           Cerrar sesión
         </button>

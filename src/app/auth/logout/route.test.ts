@@ -50,7 +50,7 @@ describe("cierre de sesión", () => {
 
     const response = await logout(SAME_ORIGIN);
 
-    expect(await response.json()).toEqual({ redirectTo: "/ingresar" });
+    expect(await response.json()).toEqual({ redirectTo: "/sign-in" });
     expect(jar.values.size).toBe(0);
     const [url, init] = api.mock.calls[0] as unknown as [URL, RequestInit];
     expect(String(url)).toBe(`${API}/api/v1/auth/logout`);
