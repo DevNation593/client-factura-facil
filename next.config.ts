@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import { legacyRedirects } from "./src/server/legacyRoutes";
+
 // Sin telemetría, se lance como se lance: Next lee esta variable después de cargar la configuración.
 process.env.NEXT_TELEMETRY_DISABLED = "1";
 
@@ -8,6 +10,9 @@ const nextConfig: NextConfig = {
   // La imagen de contenedor se construye con salida autocontenida (frontend/Dockerfile).
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   poweredByHeader: false,
+  async redirects() {
+    return legacyRedirects();
+  },
   async headers() {
     return [
       {
