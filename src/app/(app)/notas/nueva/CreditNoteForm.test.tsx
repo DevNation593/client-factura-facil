@@ -221,8 +221,8 @@ describe("Nota de crédito", () => {
     renderWithTenant(<NuevaNotaPage />);
 
     const notice = await screen.findByText(/¿La factura se emitió aquí\?/);
-    expect(notice).toHaveTextContent("¿La factura se emitió aquí? Ábrela desde Comprobantes");
-    expect(within(notice).getByRole("link", { name: "Ábrela desde Comprobantes" })).toHaveAttribute("href", "/documentos");
+    expect(notice).toHaveTextContent("¿La factura se emitió aquí? Ábrela desde Facturas");
+    expect(within(notice).getByRole("link", { name: "Ábrela desde Facturas" })).toHaveAttribute("href", "/documentos/facturas");
 
     const number = screen.getByLabelText("Número de la factura");
     await userEvent.type(number, "001-001-123");

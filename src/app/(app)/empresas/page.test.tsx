@@ -33,7 +33,7 @@ describe("Empresas", () => {
     await userEvent.click(screen.getByRole("button", { name: "Usar Ferretería Sur" }));
 
     expect(activeTenantId()).toBe(B.id);
-    expect(router.push).toHaveBeenCalledWith("/documentos");
+    expect(router.push).toHaveBeenCalledWith("/documentos/facturas");
     expect(await screen.findByText("En uso")).toBeInTheDocument();
   });
 

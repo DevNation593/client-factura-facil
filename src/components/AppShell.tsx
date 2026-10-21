@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
+import { DOCUMENT_MODULES } from "@/lib/documentTypes";
 import { ROLE_LABELS } from "@/lib/roles";
 import { sessionNavigation } from "@/lib/sessionNavigation";
 import { canBill, canWrite, TenantProvider, useTenant } from "@/lib/tenantContext";
@@ -65,10 +66,20 @@ function Rail({ userName }: { userName: string | null }) {
         )}
       </div>
       <nav aria-label="Secciones">
-        <NavLink href="/documentos">Comprobantes</NavLink>
-        {canBill(active) ? <NavLink href="/facturas/nueva">Nueva factura</NavLink> : null}
-        {canBill(active) ? <NavLink href="/facturas/borradores">Borradores</NavLink> : null}
-        {canBill(active) ? <NavLink href="/notas/nueva">Nueva nota</NavLink> : null}
+        <span className="rail-group">Comprobantes</span>
+        {DOCUMENT_MODULES.map((section) => (
+          <NavLink key={section.code} href={section.href}>
+            {section.title}
+          </NavLink>
+        ))}
+        {canBill(active) ? (
+          <>
+            <span className="rail-group">Emisión</span>
+            <NavLink href="/facturas/nueva">Nueva factura</NavLink>
+            <NavLink href="/facturas/borradores">Borradores</NavLink>
+            <NavLink href="/notas/nueva">Nueva nota</NavLink>
+          </>
+        ) : null}
         <span className="rail-group">Catálogos</span>
         <NavLink href="/clientes">Clientes</NavLink>
         <NavLink href="/productos">Productos</NavLink>
