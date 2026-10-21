@@ -19,7 +19,7 @@ export default function EmpresasPage() {
 
   function use(id: string) {
     select(id);
-    router.push("/documentos");
+    router.push("/documentos/facturas");
   }
 
   async function create(event: FormEvent) {
