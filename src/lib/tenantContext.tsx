@@ -83,7 +83,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       }
       clearActiveTenant();
       pinTenant(null);
-      sessionNavigation.leave("/empresas");
+      sessionNavigation.leave("/companies");
     };
     window.addEventListener(TENANT_FORBIDDEN_EVENT, lost);
     return () => window.removeEventListener(TENANT_FORBIDDEN_EVENT, lost);

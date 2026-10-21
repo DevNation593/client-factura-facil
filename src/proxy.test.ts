@@ -12,8 +12,8 @@ function nonceOf(policy: string | null): string {
 
 describe("proxy", () => {
   it("gives every page a policy with a nonce of its own, and tells the renderer which", () => {
-    const first = proxy(new NextRequest("http://localhost:3000/documentos"));
-    const second = proxy(new NextRequest("http://localhost:3000/documentos"));
+    const first = proxy(new NextRequest("http://localhost:3000/documents"));
+    const second = proxy(new NextRequest("http://localhost:3000/documents"));
 
     const policy = first.headers.get("Content-Security-Policy");
     expect(policy).toContain("script-src 'self' 'nonce-");
@@ -46,7 +46,7 @@ describe("proxy", () => {
     const matcher = config.matcher[0];
     const pattern = new RegExp(`^${matcher?.source}$`);
 
-    for (const path of ["/", "/documentos", "/ingresar", "/auth/login"]) {
+    for (const path of ["/", "/documents", "/sign-in", "/auth/login"]) {
       expect(pattern.test(path), path).toBe(true);
     }
     for (const path of ["/api/backend/customers", "/api/session", "/_next/static/chunks/main.js", "/favicon.ico"]) {

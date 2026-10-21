@@ -12,7 +12,7 @@ const TENANT = { id: "11111111-1111-4111-8111-111111111111", name: "Comercial An
 
 describe("AppShell", () => {
   it("shows the active company, the user and the sections the role can use", async () => {
-    route.pathname = "/clientes";
+    route.pathname = "/customers";
     stubApi({ "GET /tenants": () => json(200, [TENANT]) });
     render(
       <AppShell userName="Ana Pérez">
@@ -26,14 +26,14 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Clientes" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Facturas" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: "Nueva factura" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Nueva nota" })).toHaveAttribute("href", "/notas/nueva");
+    expect(screen.getByRole("link", { name: "Nueva nota" })).toHaveAttribute("href", "/notes/new");
     // Las integraciones son de quien administra la empresa.
     expect(screen.queryByRole("link", { name: "Integraciones" })).not.toBeInTheDocument();
     expect(screen.getByText("contenido")).toBeInTheDocument();
   });
 
   it("offers the integrations to whoever manages the company", async () => {
-    route.pathname = "/integraciones";
+    route.pathname = "/integrations";
     stubApi({ "GET /tenants": () => json(200, [{ ...TENANT, role: "ADMIN" }]) });
     render(
       <AppShell userName="Ana Pérez">
@@ -47,7 +47,7 @@ describe("AppShell", () => {
   });
 
   it("groups the documents in one entry per type", async () => {
-    route.pathname = "/documentos/notas-de-credito";
+    route.pathname = "/documents/credit-notes";
     stubApi({ "GET /tenants": () => json(200, [TENANT]) });
     render(
       <AppShell userName="Ana Pérez">
@@ -60,12 +60,12 @@ describe("AppShell", () => {
     expect(within(nav).getByText("Comprobantes")).toBeInTheDocument();
     const links = within(nav).getAllByRole("link").slice(0, 6);
     expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-      ["Facturas", "/documentos/facturas"],
-      ["Notas de crédito", "/documentos/notas-de-credito"],
-      ["Notas de débito", "/documentos/notas-de-debito"],
-      ["Guías de remisión", "/documentos/guias-de-remision"],
-      ["Liquidaciones de compra", "/documentos/liquidaciones-de-compra"],
-      ["Retenciones", "/documentos/retenciones"],
+      ["Facturas", "/documents/invoices"],
+      ["Notas de crédito", "/documents/credit-notes"],
+      ["Notas de débito", "/documents/debit-notes"],
+      ["Guías de remisión", "/documents/waybills"],
+      ["Liquidaciones de compra", "/documents/purchase-settlements"],
+      ["Retenciones", "/documents/withholdings"],
     ]);
     expect(within(nav).getByRole("link", { name: "Notas de crédito" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getByRole("link", { name: "Notas de débito" })).not.toHaveAttribute("aria-current");
@@ -73,7 +73,7 @@ describe("AppShell", () => {
   });
 
   it("offers new notes only to whoever can issue", async () => {
-    route.pathname = "/documentos/facturas";
+    route.pathname = "/documents/invoices";
     stubApi({ "GET /tenants": () => json(200, [{ ...TENANT, role: "AUDITOR" }]) });
     render(
       <AppShell userName="Ana Pérez">
@@ -86,7 +86,7 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "Nueva nota" })).not.toBeInTheDocument();
     expect(screen.queryByText("Emisión")).not.toBeInTheDocument();
     // Los listados sí los ve: un auditor revisa lo emitido.
-    expect(screen.getByRole("link", { name: "Retenciones" })).toHaveAttribute("href", "/documentos/retenciones");
+    expect(screen.getByRole("link", { name: "Retenciones" })).toHaveAttribute("href", "/documents/withholdings");
   });
 
   it("signs out and leaves for the address the server gives", async () => {
@@ -125,6 +125,6 @@ describe("AppShell", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Cerrar sesión" }));
 
-    await waitFor(() => expect(leave).toHaveBeenCalledWith("/ingresar"));
+    await waitFor(() => expect(leave).toHaveBeenCalledWith("/sign-in"));
   });
 });
