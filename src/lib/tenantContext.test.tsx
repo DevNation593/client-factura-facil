@@ -123,7 +123,7 @@ describe("TenantProvider", () => {
 
     await api.GET("/customers");
 
-    await waitFor(() => expect(leave).toHaveBeenCalledWith("/companies"));
+    await waitFor(() => expect(leave).toHaveBeenCalledWith("/settings/companies"));
     expect(activeTenantId()).toBeNull();
   });
 
@@ -177,11 +177,11 @@ describe("TenantProvider", () => {
 
 describe("ErrorNotice", () => {
   it("offers to sign in again when a call fails because the session ended", () => {
-    route.pathname = "/customers";
+    route.pathname = "/catalogs/customers";
     render(<ErrorNotice error={apiError(401, "UNAUTHENTICATED")} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("Su sesión terminó.");
-    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/sign-in?volver=%2Fcustomers");
+    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/sign-in?volver=%2Fcatalogs%2Fcustomers");
   });
 
   it("comes back to the same search or record after signing in, not just to the same screen", () => {

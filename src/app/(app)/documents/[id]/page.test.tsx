@@ -229,7 +229,7 @@ describe("Comprobante", () => {
       // Tal como se escribirían a mano, sin los ceros de relleno.
       lines: [{ productId: PRODUCT, quantity: "2", unitPrice: "10", discount: "1.50" }],
     });
-    expect(router.push).toHaveBeenCalledWith(`/invoices/new?borrador=${draft.id}`);
+    expect(router.push).toHaveBeenCalledWith(`/documents/invoices/new?borrador=${draft.id}`);
   });
 
   it("offers that only for documents the SRI rejected and that have no replacement yet", async () => {
@@ -350,8 +350,8 @@ describe("Comprobante", () => {
     renderWithTenant(<DocumentoPage />);
 
     expect(await screen.findByText("Acreditado $5.00 de $23.00")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Nota de crédito" })).toHaveAttribute("href", `/notes/new?tipo=credito&factura=${ID}`);
-    expect(screen.getByRole("link", { name: "Nota de débito" })).toHaveAttribute("href", `/notes/new?tipo=debito&factura=${ID}`);
+    expect(screen.getByRole("link", { name: "Nota de crédito" })).toHaveAttribute("href", `/documents/credit-notes/new?factura=${ID}`);
+    expect(screen.getByRole("link", { name: "Nota de débito" })).toHaveAttribute("href", `/documents/debit-notes/new?factura=${ID}`);
   });
 
   it("does not offer notes on an unauthorized invoice or to someone who cannot bill", async () => {

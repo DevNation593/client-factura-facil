@@ -22,8 +22,11 @@ export function documentTypeShort(code: string): string {
   return TYPES[code]?.short ?? UNKNOWN;
 }
 
+/** Una pestaña de un submódulo: su listado, sus borradores o su pantalla de emisión. */
+export type SubmoduleTab = { label: string; href: string };
+
 /** Un submódulo de "Comprobantes": el listado de un tipo y, si la plataforma lo emite, su pantalla de emisión. */
-export type DocumentModule = {
+export type DocumentSubmodule = {
   code: DocumentTypeCode;
   /** Plural para la navegación y el título del listado. */
   title: string;
@@ -32,19 +35,22 @@ export type DocumentModule = {
   counterpart: string;
   /** Lo que dice el listado cuando no hay ninguno. */
   empty: string;
-  /** null mientras la API no emita este tipo: el listado no ofrece un botón que no funcionaría. */
-  issue: { href: string; label: string } | null;
+  /** null mientras la API no emita este tipo: el submódulo no ofrece una pantalla que no funcionaría. */
+  issue: SubmoduleTab | null;
+  /** Borradores guardados en el navegador; solo las facturas los tienen. */
+  drafts: SubmoduleTab | null;
 };
 
 /** Los submódulos de "Comprobantes", en el orden en que aparecen en la navegación. */
-export const DOCUMENT_MODULES: readonly DocumentModule[] = [
+export const DOCUMENT_SUBMODULES: readonly DocumentSubmodule[] = [
   {
     code: "01",
     title: "Facturas",
     href: "/documents/invoices",
     counterpart: "Cliente",
     empty: "Aún no se ha emitido ninguna factura.",
-    issue: { href: "/invoices/new", label: "Nueva factura" },
+    issue: { href: "/documents/invoices/new", label: "Nueva factura" },
+    drafts: { href: "/documents/invoices/drafts", label: "Borradores" },
   },
   {
     code: "04",
@@ -52,7 +58,8 @@ export const DOCUMENT_MODULES: readonly DocumentModule[] = [
     href: "/documents/credit-notes",
     counterpart: "Cliente",
     empty: "Aún no se ha emitido ninguna nota de crédito.",
-    issue: { href: "/notes/new?tipo=credito", label: "Nueva nota de crédito" },
+    issue: { href: "/documents/credit-notes/new", label: "Nueva nota de crédito" },
+    drafts: null,
   },
   {
     code: "05",
@@ -60,7 +67,8 @@ export const DOCUMENT_MODULES: readonly DocumentModule[] = [
     href: "/documents/debit-notes",
     counterpart: "Cliente",
     empty: "Aún no se ha emitido ninguna nota de débito.",
-    issue: { href: "/notes/new?tipo=debito", label: "Nueva nota de débito" },
+    issue: { href: "/documents/debit-notes/new", label: "Nueva nota de débito" },
+    drafts: null,
   },
   {
     code: "06",
@@ -69,6 +77,7 @@ export const DOCUMENT_MODULES: readonly DocumentModule[] = [
     counterpart: "Destinatario",
     empty: "No hay guías de remisión.",
     issue: null,
+    drafts: null,
   },
   {
     code: "03",
@@ -77,6 +86,7 @@ export const DOCUMENT_MODULES: readonly DocumentModule[] = [
     counterpart: "Proveedor",
     empty: "No hay liquidaciones de compra.",
     issue: null,
+    drafts: null,
   },
   {
     code: "07",
@@ -85,13 +95,27 @@ export const DOCUMENT_MODULES: readonly DocumentModule[] = [
     counterpart: "Sujeto retenido",
     empty: "No hay comprobantes de retención.",
     issue: null,
+    drafts: null,
   },
 ];
 
-export function documentModule(code: DocumentTypeCode): DocumentModule {
-  const found = DOCUMENT_MODULES.find((candidate) => candidate.code === code);
+export function documentSubmodule(code: DocumentTypeCode): DocumentSubmodule {
+  const found = DOCUMENT_SUBMODULES.find((candidate) => candidate.code === code);
   if (!found) {
     throw new Error(`Tipo de comprobante sin submódulo: ${code}`);
   }
   return found;
+}
+
+/** Pestañas de un submódulo: lo emitido y, para quien puede emitir, los borradores y la emisión. */
+export function submoduleTabs(submodule: DocumentSubmodule, canIssue: boolean): SubmoduleTab[] {
+  const tabs: SubmoduleTab[] = [{ label: "Emitidas", href: submodule.href }];
+  if (canIssue) {
+    for (const tab of [submodule.drafts, submodule.issue]) {
+      if (tab) {
+        tabs.push(tab);
+      }
+    }
+  }
+  return tabs;
 }

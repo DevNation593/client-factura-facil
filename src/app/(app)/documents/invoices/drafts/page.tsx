@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { NoTenant } from "@/components/NoTenant";
 import { Notice } from "@/components/Notice";
+import { SubmoduleTabs } from "@/components/SubmoduleTabs";
 import { deleteDraft, listDrafts, type Draft } from "@/lib/drafts";
 import { useTenant } from "@/lib/tenantContext";
 
@@ -31,10 +32,8 @@ function DraftList({ tenantId }: { tenantId: string }) {
     <>
       <div className="sheet-head">
         <h1>Borradores</h1>
-        <Link className="btn btn-primary" href="/invoices/new">
-          Nueva factura
-        </Link>
       </div>
+      <SubmoduleTabs type="01" />
       <Notice>
         Los borradores se guardan solo en este navegador. No se ven desde otro equipo y se pierden si borra los datos de navegación.
       </Notice>
@@ -61,7 +60,7 @@ function DraftList({ tenantId }: { tenantId: string }) {
                 <td className="num">{draft.lines.length}</td>
                 <td>{when.format(new Date(draft.updatedAt))}</td>
                 <td className="actions">
-                  <Link href={`/invoices/new?borrador=${draft.id}`}>
+                  <Link href={`/documents/invoices/new?borrador=${draft.id}`}>
                     Continuar{" "}
                     <span className="sr-only">el borrador de {draft.customerName || "cliente sin elegir"}</span>
                   </Link>

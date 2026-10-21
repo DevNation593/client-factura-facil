@@ -1,8 +1,9 @@
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { json, stubApi } from "@/test/api";
+import { route } from "@/test/navigation";
 import { renderWithTenant } from "@/test/render";
 
 import { DocumentList } from "./DocumentList";
@@ -83,27 +84,37 @@ describe("Listado de un tipo de comprobante", () => {
 
   it("invites to issue the first invoice, but not an auditor", async () => {
     stubApi({ "GET /documents": () => page([]) });
+    route.pathname = "/documents/invoices";
     const { unmount } = renderWithTenant(<DocumentList type="01" />);
+    const tabs = screen.getByRole("navigation", { name: "Facturas" });
+    expect(within(tabs).getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Emitidas", "/documents/invoices"],
+      ["Borradores", "/documents/invoices/drafts"],
+      ["Nueva factura", "/documents/invoices/new"],
+    ]);
+    expect(within(tabs).getByRole("link", { name: "Emitidas" })).toHaveAttribute("aria-current", "page");
     expect(await screen.findByRole("heading", { name: "Facturas" })).toBeInTheDocument();
     expect(await screen.findByText("Aún no se ha emitido ninguna factura.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Nueva factura" })).toHaveAttribute("href", "/invoices/new");
+    expect(screen.getByRole("link", { name: "Nueva factura" })).toHaveAttribute("href", "/documents/invoices/new");
     unmount();
 
     renderWithTenant(<DocumentList type="01" />, { role: "AUDITOR" });
     await waitFor(() => expect(screen.getByText("Aún no se ha emitido ninguna factura.")).toBeInTheDocument());
     expect(screen.queryByRole("link", { name: "Nueva factura" })).not.toBeInTheDocument();
+    // Sin nada que emitir, una sola pestaña no hace falta.
+    expect(screen.queryByRole("navigation", { name: "Facturas" })).not.toBeInTheDocument();
   });
 
   it("leads each note to its own issuing tab", async () => {
     stubApi({ "GET /documents": () => page([]) });
     const { unmount } = renderWithTenant(<DocumentList type="04" />);
     expect(await screen.findByText("Aún no se ha emitido ninguna nota de crédito.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Nueva nota de crédito" })).toHaveAttribute("href", "/notes/new?tipo=credito");
+    expect(screen.getByRole("link", { name: "Nueva nota de crédito" })).toHaveAttribute("href", "/documents/credit-notes/new");
     unmount();
 
     renderWithTenant(<DocumentList type="05" />);
     expect(await screen.findByText("Aún no se ha emitido ninguna nota de débito.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Nueva nota de débito" })).toHaveAttribute("href", "/notes/new?tipo=debito");
+    expect(screen.getByRole("link", { name: "Nueva nota de débito" })).toHaveAttribute("href", "/documents/debit-notes/new");
   });
 
   it.each([

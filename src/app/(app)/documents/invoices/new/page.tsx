@@ -14,6 +14,7 @@ import { ErrorNotice, Notice } from "@/components/Notice";
 import { PointSelect } from "@/components/PointSelect";
 import { PreviewTotals } from "@/components/PreviewTotals";
 import { ProductLines } from "@/components/ProductLines";
+import { SubmoduleTabs } from "@/components/SubmoduleTabs";
 import { catalogLabel } from "@/lib/catalogLabels";
 import { deleteDraft, findDraft, newDraft, saveDraft, type Draft } from "@/lib/drafts";
 import { previewInvoice, sumAmounts } from "@/lib/invoicePreview";
@@ -183,7 +184,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
     ...(preview.complete && !paymentMatches ? ["que el pago sume el total"] : []),
   ];
   /** A dónde volver tras iniciar sesión de nuevo: a este mismo borrador. */
-  const returnTo = `/invoices/new?borrador=${draft.id}`;
+  const returnTo = `/documents/invoices/new?borrador=${draft.id}`;
 
   async function emit(event: FormEvent) {
     event.preventDefault();
@@ -240,10 +241,11 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
           {savedAt ? `Borrador guardado a las ${savedAt}` : "Borrador sin guardar"}
         </span>
       </div>
+      <SubmoduleTabs type="01" />
       {unsaved ? (
         <Notice kind="warning">
           Lo que escribe no se está guardando como borrador: ya hay el máximo de borradores en este navegador, o el navegador no permite
-          guardar. Puede emitir la factura igualmente; para volver a guardar, <Link href="/invoices/drafts">descarte borradores</Link> que
+          guardar. Puede emitir la factura igualmente; para volver a guardar, <Link href="/documents/invoices/drafts">descarte borradores</Link> que
           ya no necesite.
         </Notice>
       ) : null}
@@ -336,7 +338,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
       {sessionExpired ? (
         <Notice kind="error">
           Su sesión terminó. El borrador está guardado:{" "}
-          <a href={loginUrl(`/invoices/new?borrador=${draft.id}`)}>inicie sesión</a> y continúe donde lo dejó.
+          <a href={loginUrl(`/documents/invoices/new?borrador=${draft.id}`)}>inicie sesión</a> y continúe donde lo dejó.
         </Notice>
       ) : keyReused ? (
         <Notice kind="error">
@@ -360,7 +362,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
         <button type="submit" className="btn btn-primary" disabled={!ready || sending} aria-describedby={missing.length > 0 ? missingHint : undefined}>
           {sending ? "Emitiendo…" : "Emitir factura"}
         </button>
-        <Link href="/invoices/drafts">Ver borradores</Link>
+        <Link href="/documents/invoices/drafts">Ver borradores</Link>
       </p>
       {missing.length > 0 ? (
         <p className="field-hint" id={missingHint}>

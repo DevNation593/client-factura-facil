@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 
-/** "Comprobantes" se divide en un listado por tipo; sin tipo se abre el de facturas. */
-export default function DocumentosPage() {
-  redirect("/documents/invoices");
+import { moduleHome } from "@/lib/modules";
+
+/** "Comprobantes" a secas abre su primer submódulo. */
+export default function ModulePage() {
+  redirect(moduleHome("/documents"));
 }

@@ -22,6 +22,6 @@ describe("pantalla de error", () => {
   it("offers the saved drafts, where unsent work is", () => {
     render(<ErrorPage error={new Error("x")} reset={() => {}} />);
 
-    expect(screen.getByRole("link", { name: "Ver borradores" })).toHaveAttribute("href", "/invoices/drafts");
+    expect(screen.getByRole("link", { name: "Ver borradores" })).toHaveAttribute("href", "/documents/invoices/drafts");
   });
 });

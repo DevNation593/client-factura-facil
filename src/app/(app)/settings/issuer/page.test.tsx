@@ -245,6 +245,6 @@ describe("Emisor", () => {
     stubApi({ "GET /taxpayers": () => json(200, []) });
     renderWithTenant(<EmisorPage />, { active: false });
 
-    expect(screen.getByRole("link", { name: "elija o cree una empresa" })).toHaveAttribute("href", "/companies");
+    expect(screen.getByRole("link", { name: "elija o cree una empresa" })).toHaveAttribute("href", "/settings/companies");
   });
 });

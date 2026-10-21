@@ -18,7 +18,7 @@ describe("Borradores", () => {
     expect(screen.queryByText("De otra empresa")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Continuar el borrador de María Pérez/ })).toHaveAttribute(
       "href",
-      `/invoices/new?borrador=${draft.id}`,
+      `/documents/invoices/new?borrador=${draft.id}`,
     );
 
     await userEvent.click(screen.getByRole("button", { name: /Descartar el borrador de María Pérez/ }));
