@@ -308,10 +308,10 @@ function NoteActions({ invoice }: { invoice: Document }) {
         </p>
       ) : null}
       <p className="actions">
-        <Link className="btn" href={`/notes/new?tipo=credito&factura=${invoice.id}`}>
+        <Link className="btn" href={`/documents/credit-notes/new?factura=${invoice.id}`}>
           Nota de crédito
         </Link>
-        <Link className="btn" href={`/notes/new?tipo=debito&factura=${invoice.id}`}>
+        <Link className="btn" href={`/documents/debit-notes/new?factura=${invoice.id}`}>
           Nota de débito
         </Link>
       </p>
@@ -366,7 +366,7 @@ function ReissueAction({ invoice, tenantId }: { invoice: Document; tenantId: str
       setFailed(true);
       return;
     }
-    router.push(`/invoices/new?borrador=${draft.id}`);
+    router.push(`/documents/invoices/new?borrador=${draft.id}`);
   }
 
   return (

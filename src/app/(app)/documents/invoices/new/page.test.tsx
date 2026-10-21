@@ -197,7 +197,7 @@ describe("Nueva factura", () => {
 
     const link = await screen.findByRole("link", { name: "inicie sesión" });
     const draft = listDrafts(TENANT_ID)[0]!;
-    expect(link).toHaveAttribute("href", `/sign-in?volver=${encodeURIComponent(`/invoices/new?borrador=${draft.id}`)}`);
+    expect(link).toHaveAttribute("href", `/sign-in?volver=${encodeURIComponent(`/documents/invoices/new?borrador=${draft.id}`)}`);
     expect(draft.customerId).toBe(CUSTOMER.id);
     expect(draft.lines[0]?.quantity).toBe("2");
   });
@@ -468,7 +468,7 @@ describe("Nueva factura", () => {
 
     await userEvent.click(await screen.findByRole("combobox", { name: "Cliente" }));
     const link = await screen.findByRole("link", { name: "Iniciar sesión" });
-    expect(link).toHaveAttribute("href", `/sign-in?volver=${encodeURIComponent(`/invoices/new?borrador=${draft.id}`)}`);
+    expect(link).toHaveAttribute("href", `/sign-in?volver=${encodeURIComponent(`/documents/invoices/new?borrador=${draft.id}`)}`);
   });
 
   it("says which rejected invoice the draft replaces and tells the server when issuing", async () => {
@@ -514,7 +514,7 @@ describe("Nueva factura", () => {
     await fillInvoice();
 
     expect(await screen.findByText(/no se está guardando como borrador/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "descarte borradores" })).toHaveAttribute("href", "/invoices/drafts");
+    expect(screen.getByRole("link", { name: "descarte borradores" })).toHaveAttribute("href", "/documents/invoices/drafts");
     // Emitir sigue siendo posible.
     expect(screen.getByRole("button", { name: "Emitir factura" })).toBeEnabled();
   });

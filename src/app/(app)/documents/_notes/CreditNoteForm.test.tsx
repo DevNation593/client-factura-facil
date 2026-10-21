@@ -6,7 +6,7 @@ import { json, problem, stubApi } from "@/test/api";
 import { route, router } from "@/test/navigation";
 import { renderWithTenant } from "@/test/render";
 
-import NuevaNotaPage from "./page";
+import NuevaNotaPage from "../credit-notes/new/page";
 
 const TAXPAYER = { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", ruc: "1790012345001", legalName: "Comercial Andina S.A.", headOfficeAddress: "Quito", defaultEnvironment: "1" };
 const ESTABLISHMENT = { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", taxpayerId: TAXPAYER.id, code: "001", address: "Quito" };
@@ -100,7 +100,7 @@ function emitButton() {
 
 describe("Nota de crédito", () => {
   it("withInvoiceShowsItsLinesAndBalance", async () => {
-    route.search = `?tipo=credito&factura=${INVOICE_ID}`;
+    route.search = `?factura=${INVOICE_ID}`;
     api(() => json(202, ISSUED));
     renderWithTenant(<NuevaNotaPage />);
 
@@ -187,7 +187,7 @@ describe("Nota de crédito", () => {
   });
 
   it("emitsWithInvoiceLineNumbers", async () => {
-    route.search = `?tipo=credito&factura=${INVOICE_ID}`;
+    route.search = `?factura=${INVOICE_ID}`;
     const stub = api(() => json(202, ISSUED));
     renderWithTenant(<NuevaNotaPage />);
     await userEvent.click(await screen.findByRole("checkbox", { name: /Acreditar la línea 2/ }));
@@ -216,7 +216,7 @@ describe("Nota de crédito", () => {
   });
 
   it("manualModeAsksForInvoiceNumberAndCustomer", async () => {
-    route.search = "?tipo=credito";
+    route.search = "";
     const stub = api(() => json(202, ISSUED));
     renderWithTenant(<NuevaNotaPage />);
 

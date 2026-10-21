@@ -20,7 +20,7 @@ export function NoTenant() {
   }
   return (
     <Notice>
-      Para continuar, <Link href="/companies">elija o cree una empresa</Link>.
+      Para continuar, <Link href="/settings/companies">elija o cree una empresa</Link>.
     </Notice>
   );
 }

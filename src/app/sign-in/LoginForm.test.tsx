@@ -54,7 +54,7 @@ describe("Ingresar", () => {
   });
 
   it("shows why the user is here when the session ended", () => {
-    render(<LoginForm returnTo="/customers" notice="Su sesión terminó. Ingrese de nuevo para continuar donde estaba." />);
+    render(<LoginForm returnTo="/catalogs/customers" notice="Su sesión terminó. Ingrese de nuevo para continuar donde estaba." />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("Su sesión terminó");
   });

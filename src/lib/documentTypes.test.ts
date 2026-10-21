@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DOCUMENT_MODULES, documentModule, documentTypeLabel, documentTypeShort } from "./documentTypes";
+import { DOCUMENT_SUBMODULES, documentSubmodule, documentTypeLabel, documentTypeShort, submoduleTabs } from "./documentTypes";
 
 describe("documentTypes", () => {
   it("names the six document types", () => {
@@ -27,7 +27,7 @@ describe("documentTypes", () => {
   });
 
   it("has one submodule per type, in the order of the menu", () => {
-    expect(DOCUMENT_MODULES.map((entry) => [entry.code, entry.title, entry.href])).toEqual([
+    expect(DOCUMENT_SUBMODULES.map((entry) => [entry.code, entry.title, entry.href])).toEqual([
       ["01", "Facturas", "/documents/invoices"],
       ["04", "Notas de crédito", "/documents/credit-notes"],
       ["05", "Notas de débito", "/documents/debit-notes"],
@@ -37,12 +37,21 @@ describe("documentTypes", () => {
     ]);
   });
 
-  it("offers to issue only the types the platform issues", () => {
-    expect(documentModule("01").issue?.href).toBe("/invoices/new");
-    expect(documentModule("04").issue?.href).toBe("/notes/new?tipo=credito");
-    expect(documentModule("05").issue?.href).toBe("/notes/new?tipo=debito");
-    expect(documentModule("06").issue).toBeNull();
-    expect(documentModule("03").issue).toBeNull();
-    expect(documentModule("07").issue).toBeNull();
+  it("issues each type inside its own submodule, and only the types the platform issues", () => {
+    expect(documentSubmodule("01").issue?.href).toBe("/documents/invoices/new");
+    expect(documentSubmodule("04").issue?.href).toBe("/documents/credit-notes/new");
+    expect(documentSubmodule("05").issue?.href).toBe("/documents/debit-notes/new");
+    expect(documentSubmodule("06").issue).toBeNull();
+    expect(documentSubmodule("03").issue).toBeNull();
+    expect(documentSubmodule("07").issue).toBeNull();
+  });
+
+  it("gives each submodule its tabs, the issuing ones only to whoever can issue", () => {
+    const labels = (code: "01" | "04" | "07", canIssue: boolean) => submoduleTabs(documentSubmodule(code), canIssue).map((tab) => tab.label);
+
+    expect(labels("01", true)).toEqual(["Emitidas", "Borradores", "Nueva factura"]);
+    expect(labels("04", true)).toEqual(["Emitidas", "Nueva nota de crédito"]);
+    expect(labels("07", true)).toEqual(["Emitidas"]);
+    expect(labels("01", false)).toEqual(["Emitidas"]);
   });
 });
