@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -24,7 +24,7 @@ describe("AppShell", () => {
     expect(screen.getByText("Facturador")).toBeInTheDocument();
     expect(screen.getByText("Ana Pérez")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Clientes" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "Comprobantes" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "Facturas" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("link", { name: "Nueva factura" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Nueva nota" })).toHaveAttribute("href", "/notas/nueva");
     // Las integraciones son de quien administra la empresa.
@@ -46,8 +46,34 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "Equipo" })).not.toBeInTheDocument();
   });
 
+  it("groups the documents in one entry per type", async () => {
+    route.pathname = "/documentos/notas-de-credito";
+    stubApi({ "GET /tenants": () => json(200, [TENANT]) });
+    render(
+      <AppShell userName="Ana Pérez">
+        <p>contenido</p>
+      </AppShell>,
+    );
+    await screen.findByText("Comercial Andina");
+
+    const nav = screen.getByRole("navigation", { name: "Secciones" });
+    expect(within(nav).getByText("Comprobantes")).toBeInTheDocument();
+    const links = within(nav).getAllByRole("link").slice(0, 6);
+    expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Facturas", "/documentos/facturas"],
+      ["Notas de crédito", "/documentos/notas-de-credito"],
+      ["Notas de débito", "/documentos/notas-de-debito"],
+      ["Guías de remisión", "/documentos/guias-de-remision"],
+      ["Liquidaciones de compra", "/documentos/liquidaciones-de-compra"],
+      ["Retenciones", "/documentos/retenciones"],
+    ]);
+    expect(within(nav).getByRole("link", { name: "Notas de crédito" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("link", { name: "Notas de débito" })).not.toHaveAttribute("aria-current");
+    expect(within(nav).getByRole("link", { name: "Facturas" })).not.toHaveAttribute("aria-current");
+  });
+
   it("offers new notes only to whoever can issue", async () => {
-    route.pathname = "/documentos";
+    route.pathname = "/documentos/facturas";
     stubApi({ "GET /tenants": () => json(200, [{ ...TENANT, role: "AUDITOR" }]) });
     render(
       <AppShell userName="Ana Pérez">
@@ -58,6 +84,9 @@ describe("AppShell", () => {
     expect(await screen.findByText("Auditor")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Nueva factura" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Nueva nota" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Emisión")).not.toBeInTheDocument();
+    // Los listados sí los ve: un auditor revisa lo emitido.
+    expect(screen.getByRole("link", { name: "Retenciones" })).toHaveAttribute("href", "/documentos/retenciones");
   });
 
   it("signs out and leaves for the address the server gives", async () => {

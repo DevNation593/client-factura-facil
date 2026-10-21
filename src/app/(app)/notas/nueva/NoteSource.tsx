@@ -37,7 +37,7 @@ export function AuthorizedInvoice({
     return <p className="lead">Cargando la factura…</p>;
   }
   if (invoice.data.documentType !== "01") {
-    return <Notice kind="warning">El comprobante elegido no es una factura. Elija una factura desde los <Link href="/documentos">comprobantes</Link>.</Notice>;
+    return <Notice kind="warning">El comprobante elegido no es una factura. Elija una factura desde las <Link href="/documentos/facturas">facturas</Link>.</Notice>;
   }
   if (invoice.data.state !== "AUTHORIZED") {
     return (
@@ -71,7 +71,7 @@ export function InvoiceFacts({ invoice }: { invoice: Document }) {
 export function ManualInvoiceNotice() {
   return (
     <Notice>
-      ¿La factura se emitió aquí? <Link href="/documentos">Ábrela desde Comprobantes</Link>
+      ¿La factura se emitió aquí? <Link href="/documentos/facturas">Ábrela desde Facturas</Link>
     </Notice>
   );
 }
