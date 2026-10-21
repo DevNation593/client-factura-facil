@@ -28,19 +28,19 @@ describe("documentTypes", () => {
 
   it("has one submodule per type, in the order of the menu", () => {
     expect(DOCUMENT_MODULES.map((entry) => [entry.code, entry.title, entry.href])).toEqual([
-      ["01", "Facturas", "/documentos/facturas"],
-      ["04", "Notas de crédito", "/documentos/notas-de-credito"],
-      ["05", "Notas de débito", "/documentos/notas-de-debito"],
-      ["06", "Guías de remisión", "/documentos/guias-de-remision"],
-      ["03", "Liquidaciones de compra", "/documentos/liquidaciones-de-compra"],
-      ["07", "Retenciones", "/documentos/retenciones"],
+      ["01", "Facturas", "/documents/invoices"],
+      ["04", "Notas de crédito", "/documents/credit-notes"],
+      ["05", "Notas de débito", "/documents/debit-notes"],
+      ["06", "Guías de remisión", "/documents/waybills"],
+      ["03", "Liquidaciones de compra", "/documents/purchase-settlements"],
+      ["07", "Retenciones", "/documents/withholdings"],
     ]);
   });
 
   it("offers to issue only the types the platform issues", () => {
-    expect(documentModule("01").issue?.href).toBe("/facturas/nueva");
-    expect(documentModule("04").issue?.href).toBe("/notas/nueva?tipo=credito");
-    expect(documentModule("05").issue?.href).toBe("/notas/nueva?tipo=debito");
+    expect(documentModule("01").issue?.href).toBe("/invoices/new");
+    expect(documentModule("04").issue?.href).toBe("/notes/new?tipo=credito");
+    expect(documentModule("05").issue?.href).toBe("/notes/new?tipo=debito");
     expect(documentModule("06").issue).toBeNull();
     expect(documentModule("03").issue).toBeNull();
     expect(documentModule("07").issue).toBeNull();
