@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { LEGACY_ROUTES, legacyRedirects } from "./legacyRoutes";
+import { LEGACY_NOTE_ROUTES, LEGACY_ROUTES, legacyRedirects, NOTE_ROUTES } from "./legacyRoutes";
 
 const APP = join(__dirname, "..", "app");
 
@@ -17,6 +17,27 @@ describe("legacyRoutes", () => {
     for (const [from, to] of LEGACY_ROUTES) {
       expect(hasPage(from), from).toBe(false);
       expect(hasPage(to), to).toBe(true);
+    }
+  });
+
+  it("sends the old note screen to the note of its type", () => {
+    for (const from of LEGACY_NOTE_ROUTES) {
+      expect(hasPage(from), from).toBe(false);
+    }
+    expect(hasPage(NOTE_ROUTES.credit)).toBe(true);
+    expect(hasPage(NOTE_ROUTES.debit)).toBe(true);
+    const rules = legacyRedirects().filter((rule) => rule.source === "/notes/new");
+    // La de débito, que mira la consulta, tiene que ir antes que la que no mira nada.
+    expect(rules).toEqual([
+      { source: "/notes/new", destination: "/documents/debit-notes/new", permanent: false, has: [{ type: "query", key: "tipo", value: "debito" }] },
+      { source: "/notes/new", destination: "/documents/credit-notes/new", permanent: false },
+    ]);
+  });
+
+  it("goes straight to the final address, with no redirect in between", () => {
+    const sources = LEGACY_ROUTES.map(([from]) => from);
+    for (const [, to] of LEGACY_ROUTES) {
+      expect(sources.filter((from) => to === from || to.startsWith(`${from}/`)), to).toEqual([]);
     }
   });
 
