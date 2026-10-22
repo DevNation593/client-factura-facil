@@ -146,6 +146,16 @@ p {
   margin: 1rem 1rem 0.25rem;
 }
 
+/* Un módulo del menú: su nombre y, debajo, sus submódulos con sangría. */
+.rail-module {
+  display: flex;
+  flex-direction: column;
+}
+
+.rail .rail-module a {
+  padding-left: calc(1.75rem - 3px);
+}
+
 .rail-user {
   border-top: 1px solid rgb(255 255 255 / 18%);
   font-size: 0.8125rem;
@@ -588,13 +598,28 @@ p {
     position: static;
   }
 
-  .rail nav {
+  /* Una fila por módulo: su nombre primero y sus submódulos a continuación, partiéndose si no caben. */
+  .rail-module {
+    align-items: center;
+    border-top: 1px solid rgb(255 255 255 / 12%);
     flex-direction: row;
     flex-wrap: wrap;
+    padding: 0.2rem 0;
+  }
+
+  .rail-module:first-child {
+    border-top: 0;
   }
 
   .rail-group {
-    display: none;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    margin: 0 0.25rem 0 1rem;
+    text-transform: uppercase;
+  }
+
+  .rail .rail-module a {
+    padding: 0.4rem 0.6rem 0.4rem calc(0.6rem - 3px);
   }
 
   .sheet {

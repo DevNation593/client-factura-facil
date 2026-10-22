@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
-import { DOCUMENT_MODULES } from "@/lib/documentTypes";
+import { MODULES } from "@/lib/modules";
 import { ROLE_LABELS } from "@/lib/roles";
 import { sessionNavigation } from "@/lib/sessionNavigation";
-import { canBill, canWrite, TenantProvider, useTenant } from "@/lib/tenantContext";
+import { canWrite, TenantProvider, useTenant } from "@/lib/tenantContext";
 
 function NavLink({ href, children }: { href: string; children: ReactNode }) {
   const pathname = usePathname();
@@ -57,7 +57,7 @@ function Rail({ userName }: { userName: string | null }) {
             <span>{ROLE_LABELS[active.role] ?? active.role}</span>
             {tenants.length > 1 ? (
               <div>
-                <Link href="/companies">Cambiar de empresa</Link>
+                <Link href="/settings/companies">Cambiar de empresa</Link>
               </div>
             ) : null}
           </>
@@ -66,28 +66,20 @@ function Rail({ userName }: { userName: string | null }) {
         )}
       </div>
       <nav aria-label="Secciones">
-        <span className="rail-group">Comprobantes</span>
-        {DOCUMENT_MODULES.map((section) => (
-          <NavLink key={section.code} href={section.href}>
-            {section.title}
-          </NavLink>
+        {MODULES.map((entry) => (
+          <div key={entry.href} className="rail-module" role="group" aria-labelledby={`modulo-${entry.href.slice(1)}`}>
+            <span className="rail-group" id={`modulo-${entry.href.slice(1)}`}>
+              {entry.title}
+            </span>
+            {entry.submodules
+              .filter((submodule) => submodule.access !== "write" || canWrite(active))
+              .map((submodule) => (
+                <NavLink key={submodule.href} href={submodule.href}>
+                  {submodule.title}
+                </NavLink>
+              ))}
+          </div>
         ))}
-        {canBill(active) ? (
-          <>
-            <span className="rail-group">Emisión</span>
-            <NavLink href="/invoices/new">Nueva factura</NavLink>
-            <NavLink href="/invoices/drafts">Borradores</NavLink>
-            <NavLink href="/notes/new">Nueva nota</NavLink>
-          </>
-        ) : null}
-        <span className="rail-group">Catálogos</span>
-        <NavLink href="/customers">Clientes</NavLink>
-        <NavLink href="/products">Productos</NavLink>
-        <span className="rail-group">Configuración</span>
-        <NavLink href="/settings/issuer">Emisor</NavLink>
-        <NavLink href="/settings/certificate">Certificado</NavLink>
-        {canWrite(active) ? <NavLink href="/integrations">Integraciones</NavLink> : null}
-        <NavLink href="/companies">Empresas</NavLink>
       </nav>
       <div className="rail-user">
         {userName ? <div>{userName}</div> : null}

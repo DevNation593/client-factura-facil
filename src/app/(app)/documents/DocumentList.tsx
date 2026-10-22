@@ -9,10 +9,11 @@ import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
 import { Pager } from "@/components/Pager";
 import { StateBadge } from "@/components/StateBadge";
+import { SubmoduleTabs } from "@/components/SubmoduleTabs";
 import { formatIssueDate } from "@/lib/dates";
 import { describeState } from "@/lib/documentStates";
-import { documentModule } from "@/lib/documentTypes";
-import { canBill, useTenant } from "@/lib/tenantContext";
+import { documentSubmodule } from "@/lib/documentTypes";
+import { useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
 import { usePolling } from "@/lib/usePolling";
 
@@ -23,7 +24,7 @@ const PAGE_SIZE = 20;
 /** Monitor de un tipo de comprobante: qué se emitió y en qué punto está cada uno ante el SRI. */
 export function DocumentList({ type }: { type: DocumentTypeCode }) {
   const { active } = useTenant();
-  const section = documentModule(type);
+  const section = documentSubmodule(type);
   const [page, setPage] = useState(0);
   const documents = useApi(
     () => unwrap(api.GET("/documents", { params: { query: { page, size: PAGE_SIZE, documentType: type } } })),
@@ -40,12 +41,8 @@ export function DocumentList({ type }: { type: DocumentTypeCode }) {
     <>
       <div className="sheet-head">
         <h1>{section.title}</h1>
-        {section.issue && canBill(active) ? (
-          <Link className="btn btn-primary" href={section.issue.href}>
-            {section.issue.label}
-          </Link>
-        ) : null}
       </div>
+      <SubmoduleTabs type={type} />
       {section.issue ? null : <Notice>La plataforma todavía no emite {section.title.toLowerCase()}.</Notice>}
       <ErrorNotice error={documents.error} />
       {documents.loading && !documents.data ? <p>Cargando…</p> : null}

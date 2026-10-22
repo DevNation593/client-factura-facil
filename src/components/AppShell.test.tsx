@@ -12,7 +12,7 @@ const TENANT = { id: "11111111-1111-4111-8111-111111111111", name: "Comercial An
 
 describe("AppShell", () => {
   it("shows the active company, the user and the sections the role can use", async () => {
-    route.pathname = "/customers";
+    route.pathname = "/catalogs/customers";
     stubApi({ "GET /tenants": () => json(200, [TENANT]) });
     render(
       <AppShell userName="Ana Pérez">
@@ -25,15 +25,54 @@ describe("AppShell", () => {
     expect(screen.getByText("Ana Pérez")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Clientes" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Facturas" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("link", { name: "Nueva factura" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Nueva nota" })).toHaveAttribute("href", "/notes/new");
     // Las integraciones son de quien administra la empresa.
     expect(screen.queryByRole("link", { name: "Integraciones" })).not.toBeInTheDocument();
     expect(screen.getByText("contenido")).toBeInTheDocument();
   });
 
+  it("lists each module with its submodules under it, and nothing else", async () => {
+    route.pathname = "/documents/credit-notes/new";
+    stubApi({ "GET /tenants": () => json(200, [{ ...TENANT, role: "ADMIN" }]) });
+    render(
+      <AppShell userName="Ana Pérez">
+        <p>contenido</p>
+      </AppShell>,
+    );
+    await screen.findByText("Comercial Andina");
+
+    const nav = screen.getByRole("navigation", { name: "Secciones" });
+    const modules = within(nav).getAllByRole("group");
+    expect(
+      modules.map((group) => [
+        group.getAttribute("aria-labelledby") ? document.getElementById(group.getAttribute("aria-labelledby")!)?.textContent : null,
+        within(group)
+          .getAllByRole("link")
+          .map((link) => link.getAttribute("href")),
+      ]),
+    ).toEqual([
+      [
+        "Comprobantes",
+        [
+          "/documents/invoices",
+          "/documents/credit-notes",
+          "/documents/debit-notes",
+          "/documents/waybills",
+          "/documents/purchase-settlements",
+          "/documents/withholdings",
+        ],
+      ],
+      ["Catálogos", ["/catalogs/customers", "/catalogs/products"]],
+      ["Configuración", ["/settings/companies", "/settings/issuer", "/settings/certificate", "/settings/integrations"]],
+    ]);
+    expect(within(nav).getAllByRole("link")).toHaveLength(12);
+    // Emitir una nota es parte de su submódulo: este queda marcado.
+    expect(within(nav).getByRole("link", { name: "Notas de crédito" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("link", { name: "Notas de débito" })).not.toHaveAttribute("aria-current");
+    expect(within(nav).queryByRole("link", { name: /^Nueva/ })).not.toBeInTheDocument();
+  });
+
   it("offers the integrations to whoever manages the company", async () => {
-    route.pathname = "/integrations";
+    route.pathname = "/settings/integrations";
     stubApi({ "GET /tenants": () => json(200, [{ ...TENANT, role: "ADMIN" }]) });
     render(
       <AppShell userName="Ana Pérez">
@@ -46,33 +85,7 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "Equipo" })).not.toBeInTheDocument();
   });
 
-  it("groups the documents in one entry per type", async () => {
-    route.pathname = "/documents/credit-notes";
-    stubApi({ "GET /tenants": () => json(200, [TENANT]) });
-    render(
-      <AppShell userName="Ana Pérez">
-        <p>contenido</p>
-      </AppShell>,
-    );
-    await screen.findByText("Comercial Andina");
-
-    const nav = screen.getByRole("navigation", { name: "Secciones" });
-    expect(within(nav).getByText("Comprobantes")).toBeInTheDocument();
-    const links = within(nav).getAllByRole("link").slice(0, 6);
-    expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-      ["Facturas", "/documents/invoices"],
-      ["Notas de crédito", "/documents/credit-notes"],
-      ["Notas de débito", "/documents/debit-notes"],
-      ["Guías de remisión", "/documents/waybills"],
-      ["Liquidaciones de compra", "/documents/purchase-settlements"],
-      ["Retenciones", "/documents/withholdings"],
-    ]);
-    expect(within(nav).getByRole("link", { name: "Notas de crédito" })).toHaveAttribute("aria-current", "page");
-    expect(within(nav).getByRole("link", { name: "Notas de débito" })).not.toHaveAttribute("aria-current");
-    expect(within(nav).getByRole("link", { name: "Facturas" })).not.toHaveAttribute("aria-current");
-  });
-
-  it("offers new notes only to whoever can issue", async () => {
+  it("shows an auditor every list, since an auditor reviews what was issued", async () => {
     route.pathname = "/documents/invoices";
     stubApi({ "GET /tenants": () => json(200, [{ ...TENANT, role: "AUDITOR" }]) });
     render(
@@ -82,10 +95,7 @@ describe("AppShell", () => {
     );
 
     expect(await screen.findByText("Auditor")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Nueva factura" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Nueva nota" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Emisión")).not.toBeInTheDocument();
-    // Los listados sí los ve: un auditor revisa lo emitido.
+    expect(screen.getByRole("link", { name: "Facturas" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Retenciones" })).toHaveAttribute("href", "/documents/withholdings");
   });
 

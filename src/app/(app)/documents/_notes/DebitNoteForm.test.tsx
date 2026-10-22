@@ -6,7 +6,7 @@ import { json, problem, stubApi } from "@/test/api";
 import { route, router } from "@/test/navigation";
 import { renderWithTenant } from "@/test/render";
 
-import NuevaNotaPage from "./page";
+import NuevaNotaPage from "../debit-notes/new/page";
 
 const TAXPAYER = { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", ruc: "1790012345001", legalName: "Comercial Andina S.A.", headOfficeAddress: "Quito", defaultEnvironment: "1" };
 const ESTABLISHMENT = { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", taxpayerId: TAXPAYER.id, code: "001", address: "Quito" };
@@ -75,7 +75,7 @@ async function fillReason(row: number, reason: string, value: string) {
 
 describe("Nota de débito", () => {
   it("previewGroupsTaxByRate", async () => {
-    route.search = `?tipo=debito&factura=${INVOICE_ID}`;
+    route.search = `?factura=${INVOICE_ID}`;
     api();
     renderWithTenant(<NuevaNotaPage />);
     await fillReason(1, "Intereses de mora", "10.00");
@@ -93,7 +93,7 @@ describe("Nota de débito", () => {
   });
 
   it("addAndRemoveReasons", async () => {
-    route.search = `?tipo=debito&factura=${INVOICE_ID}`;
+    route.search = `?factura=${INVOICE_ID}`;
     api();
     renderWithTenant(<NuevaNotaPage />);
     const add = await screen.findByRole("button", { name: "Agregar motivo" });
@@ -113,7 +113,7 @@ describe("Nota de débito", () => {
   });
 
   it("emitsReasonsAndPayment", async () => {
-    route.search = `?tipo=debito&factura=${INVOICE_ID}`;
+    route.search = `?factura=${INVOICE_ID}`;
     const stub = api();
     renderWithTenant(<NuevaNotaPage />);
     await fillReason(1, "Intereses de mora", "10.00");
@@ -142,7 +142,7 @@ describe("Nota de débito", () => {
   });
 
   it("emitsOnAHandWrittenInvoice", async () => {
-    route.search = "?tipo=debito";
+    route.search = "";
     const stub = api();
     renderWithTenant(<NuevaNotaPage />);
     await userEvent.type(await screen.findByLabelText("Número de la factura"), "001001000000123");
@@ -166,7 +166,7 @@ describe("Nota de débito", () => {
   });
 
   it("emitDisabledUntilComplete", async () => {
-    route.search = `?tipo=debito&factura=${INVOICE_ID}`;
+    route.search = `?factura=${INVOICE_ID}`;
     api();
     renderWithTenant(<NuevaNotaPage />);
     await screen.findByLabelText("Razón del motivo 1");
@@ -182,7 +182,7 @@ describe("Nota de débito", () => {
   });
 
   it("paymentMustEqualTheTotal", async () => {
-    route.search = `?tipo=debito&factura=${INVOICE_ID}`;
+    route.search = `?factura=${INVOICE_ID}`;
     const stub = api();
     renderWithTenant(<NuevaNotaPage />);
     await fillReason(1, "Intereses", "10.00");
@@ -196,7 +196,7 @@ describe("Nota de débito", () => {
   });
 
   it("showsApiProblem", async () => {
-    route.search = `?tipo=debito&factura=${INVOICE_ID}`;
+    route.search = `?factura=${INVOICE_ID}`;
     api(() => problem(422, "MODIFIED_INVOICE_NOT_AUTHORIZED", "La factura que se modifica no está autorizada."));
     renderWithTenant(<NuevaNotaPage />);
     await fillReason(1, "Intereses", "10.00");
