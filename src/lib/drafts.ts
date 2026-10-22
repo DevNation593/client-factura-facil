@@ -4,7 +4,8 @@
  */
 export type DraftLine = { productId: string; quantity: string; unitPrice: string; discount: string };
 
-export type DraftPayment = { methodCode: string; amount: string };
+/** term y timeUnit, el plazo y su unidad, faltan en los borradores guardados antes de que existieran. */
+export type DraftPayment = { methodCode: string; amount: string; term?: string; timeUnit?: string };
 
 export type Draft = {
   id: string;
