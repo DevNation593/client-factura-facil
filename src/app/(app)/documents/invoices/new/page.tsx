@@ -11,6 +11,7 @@ import { CatalogPicker } from "@/components/CatalogPicker";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
+import { PaymentTermFields } from "@/components/PaymentTermFields";
 import { PointSelect } from "@/components/PointSelect";
 import { PreviewTotals } from "@/components/PreviewTotals";
 import { ProductLines } from "@/components/ProductLines";
@@ -19,6 +20,7 @@ import { catalogLabel } from "@/lib/catalogLabels";
 import { deleteDraft, findDraft, newDraft, saveDraft, type Draft } from "@/lib/drafts";
 import { previewInvoice, sumAmounts } from "@/lib/invoicePreview";
 import { loadIssuer } from "@/lib/issuer";
+import { termFields, validTerm } from "@/lib/paymentTerm";
 import { loginUrl } from "@/lib/sessionNavigation";
 import { canBill, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
@@ -26,7 +28,7 @@ import { useApi } from "@/lib/useApi";
 type Product = components["schemas"]["Product"];
 
 const LINE_FIELDS: Record<string, string> = { productId: "producto", quantity: "cantidad", unitPrice: "precio unitario", discount: "descuento" };
-const PAYMENT_FIELDS: Record<string, string> = { methodCode: "forma de pago", amount: "importe" };
+const PAYMENT_FIELDS: Record<string, string> = { methodCode: "forma de pago", amount: "importe", term: "plazo", timeUnit: "unidad de tiempo" };
 
 /** Nombre, para el usuario, del dato de la factura que el servidor rechazó. */
 function fieldLabel(field: string): string {
@@ -150,10 +152,22 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
     setDirty(true);
   }
 
+  /** Cambia un dato del único pago y conserva los demás. */
+  function changePayment(patch: Partial<Draft["payments"][number]>, edited?: boolean) {
+    setDraft((current) => {
+      const payment = current.payments[0] ?? { methodCode: "", amount: "" };
+      return { ...current, payments: [{ ...payment, ...patch }], ...(edited ? { paymentEdited: true } : {}) };
+    });
+    setDirty(true);
+  }
+
   // Valores por defecto mientras el usuario no elige: el primer punto de emisión y la primera forma de pago.
   const points = issuer.data?.points ?? [];
   const point = points.find((candidate) => candidate.establishmentCode === draft.establishmentCode && candidate.emissionPointCode === draft.emissionPointCode) ?? points[0];
   const methodCode = draft.payments[0]?.methodCode || methods.data?.[0]?.code || "";
+  const term = draft.payments[0]?.term ?? "";
+  const timeUnit = draft.payments[0]?.timeUnit ?? "";
+  const termValid = validTerm(term);
 
   const productById = known;
   const rateByCode = new Map((rates.data ?? []).map((rate) => [rate.rateCode, rate]));
@@ -175,13 +189,15 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
   const paymentAmount = draft.paymentEdited ? (draft.payments[0]?.amount ?? "") : preview.total;
   const paid = sumAmounts([paymentAmount]);
   const paymentMatches = paid !== null && paid === preview.total;
-  const ready = preview.complete && paymentMatches && draft.customerId !== "" && point !== undefined && methodCode !== "" && issuer.data != null;
+  const ready =
+    preview.complete && paymentMatches && termValid && draft.customerId !== "" && point !== undefined && methodCode !== "" && issuer.data != null;
   // Con el botón deshabilitado, se dice por qué.
   const missing = [
     ...(issuer.data !== undefined && (issuer.data === null || point === undefined) ? ["registrar el emisor y un punto de emisión"] : []),
     ...(draft.customerId === "" ? ["elegir un cliente"] : []),
     ...(!preview.complete ? ["completar el detalle (producto, cantidad y precio de cada línea)"] : []),
     ...(preview.complete && !paymentMatches ? ["que el pago sume el total"] : []),
+    ...(!termValid ? ["corregir el plazo de pago"] : []),
   ];
   /** A dónde volver tras iniciar sesión de nuevo: a este mismo borrador. */
   const returnTo = `/documents/invoices/new?borrador=${draft.id}`;
@@ -212,7 +228,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
               unitPrice: line.unitPrice.trim(),
               discount: line.discount.trim() === "" ? "0.00" : line.discount.trim(),
             })),
-            payments: [{ methodCode, amount: paymentAmount.trim() }],
+            payments: [{ methodCode, amount: paymentAmount.trim(), ...termFields(term, timeUnit) }],
             ...(draft.replacesDocumentId ? { replacesDocumentId: draft.replacesDocumentId } : {}),
           },
         }),
@@ -308,7 +324,7 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
           <h2>Pago</h2>
           <div className="form">
             <Field label="Forma de pago" className="wide">
-              <select value={methodCode} onChange={(event) => change({ payments: [{ methodCode: event.target.value, amount: draft.payments[0]?.amount ?? "" }] })}>
+              <select value={methodCode} onChange={(event) => changePayment({ methodCode: event.target.value })}>
                 {methods.data?.map((method) => (
                   <option key={method.code} value={method.code}>
                     {catalogLabel(method.name)}
@@ -325,9 +341,10 @@ function Editor({ tenantId, draftId }: { tenantId: string; draftId: string | nul
                 className="num"
                 inputMode="decimal"
                 value={paymentAmount}
-                onChange={(event) => change({ payments: [{ methodCode, amount: event.target.value }], paymentEdited: true })}
+                onChange={(event) => changePayment({ methodCode, amount: event.target.value }, true)}
               />
             </Field>
+            <PaymentTermFields term={term} timeUnit={timeUnit} onChange={(patch) => changePayment(patch)} />
           </div>
         </div>
         <div>

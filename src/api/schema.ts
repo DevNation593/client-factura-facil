@@ -238,7 +238,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Cambia el teléfono de un emisor; los demás datos no se cambian después del alta. Vale para los comprobantes que se emitan desde ahora. Requiere rol OWNER o ADMIN. */
+        patch: operations["updateTaxpayer"];
         trace?: never;
     };
     "/taxpayers/{id}/production-readiness": {
@@ -827,7 +828,7 @@ export interface components {
             detail?: string;
             instance?: string;
             /** @enum {string} */
-            errorCode: "UNAUTHENTICATED" | "CREDENTIALS_AMBIGUOUS" | "API_KEY_NOT_ALLOWED" | "API_KEY_LIMIT" | "API_KEY_NAME_TAKEN" | "API_KEY_NOT_FOUND" | "FORBIDDEN" | "TENANT_REQUIRED" | "TENANT_HEADER_INVALID" | "TENANT_FORBIDDEN" | "ROLE_FORBIDDEN" | "NOT_FOUND" | "VALIDATION_FAILED" | "MALFORMED_REQUEST" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "REQUEST_REJECTED" | "RUC_ALREADY_REGISTERED" | "ESTABLISHMENT_CODE_TAKEN" | "EMISSION_POINT_CODE_TAKEN" | "IDENTIFICATION_TYPE_UNKNOWN" | "IDENTIFICATION_INVALID" | "CUSTOMER_ALREADY_EXISTS" | "TAX_RATE_UNKNOWN" | "PRODUCT_SKU_TAKEN" | "SEQUENCE_ALREADY_USED" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_INVALID" | "IDEMPOTENCY_KEY_REUSED" | "UNSUPPORTED_CURRENCY" | "INVALID_ISSUE_DATE" | "EMISSION_POINT_DISABLED" | "INVALID_LINE" | "AMOUNT_TOO_LARGE" | "INVALID_PAYMENT" | "CERTIFICATE_UNREADABLE" | "CERTIFICATE_NO_PRIVATE_KEY" | "CERTIFICATE_AMBIGUOUS" | "CERTIFICATE_EXPIRED" | "CERTIFICATE_NOT_YET_VALID" | "CERTIFICATE_KEY_UNSUPPORTED" | "CERTIFICATE_KEY_MISMATCH" | "DOCUMENT_NOT_RETRYABLE" | "DOCUMENT_NOT_AUTHORIZED" | "DELIVERY_DISABLED" | "DELIVERY_LIMIT_REACHED" | "DELIVERY_RECIPIENT_MISSING" | "RIMPE_REGIME_UNSUPPORTED" | "PRODUCTION_NOT_ENABLED" | "RATE_LIMITED" | "REPLACED_DOCUMENT_NOT_REJECTED" | "WEBHOOKS_DISABLED" | "WEBHOOK_URL_NOT_ALLOWED" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_DELIVERY_NOT_RETRYABLE" | "WEBHOOK_SUBSCRIPTION_DISABLED" | "REPLACED_DOCUMENT_OTHER_ISSUER" | "DOCUMENT_ALREADY_REPLACED" | "INVALID_CREDENTIALS" | "ACCOUNT_LOCKED" | "INVALID_REFRESH_TOKEN" | "INVALID_LINK" | "WEAK_PASSWORD" | "INVALID_CURRENT_PASSWORD" | "PRODUCTION_REQUIREMENTS_NOT_MET" | "PAYMENT_METHOD_UNKNOWN" | "PAYMENTS_MISMATCH" | "FINAL_CONSUMER_LIMIT_EXCEEDED" | "SEQUENCE_EXHAUSTED" | "INTERNAL_ERROR";
+            errorCode: "UNAUTHENTICATED" | "CREDENTIALS_AMBIGUOUS" | "API_KEY_NOT_ALLOWED" | "API_KEY_LIMIT" | "API_KEY_NAME_TAKEN" | "API_KEY_NOT_FOUND" | "FORBIDDEN" | "TENANT_REQUIRED" | "TENANT_HEADER_INVALID" | "TENANT_FORBIDDEN" | "ROLE_FORBIDDEN" | "NOT_FOUND" | "VALIDATION_FAILED" | "MALFORMED_REQUEST" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "REQUEST_REJECTED" | "RUC_ALREADY_REGISTERED" | "ESTABLISHMENT_CODE_TAKEN" | "EMISSION_POINT_CODE_TAKEN" | "IDENTIFICATION_TYPE_UNKNOWN" | "IDENTIFICATION_INVALID" | "CUSTOMER_ALREADY_EXISTS" | "TAX_RATE_UNKNOWN" | "PRODUCT_SKU_TAKEN" | "SEQUENCE_ALREADY_USED" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_INVALID" | "IDEMPOTENCY_KEY_REUSED" | "UNSUPPORTED_CURRENCY" | "INVALID_ISSUE_DATE" | "EMISSION_POINT_DISABLED" | "INVALID_LINE" | "AMOUNT_TOO_LARGE" | "INVALID_PAYMENT" | "CERTIFICATE_UNREADABLE" | "CERTIFICATE_NO_PRIVATE_KEY" | "CERTIFICATE_AMBIGUOUS" | "CERTIFICATE_EXPIRED" | "CERTIFICATE_NOT_YET_VALID" | "CERTIFICATE_KEY_UNSUPPORTED" | "CERTIFICATE_KEY_MISMATCH" | "DOCUMENT_NOT_RETRYABLE" | "DOCUMENT_NOT_AUTHORIZED" | "DELIVERY_DISABLED" | "DELIVERY_LIMIT_REACHED" | "DELIVERY_RECIPIENT_MISSING" | "RIMPE_REGIME_UNSUPPORTED" | "PRODUCTION_NOT_ENABLED" | "RATE_LIMITED" | "REPLACED_DOCUMENT_NOT_REJECTED" | "WEBHOOKS_DISABLED" | "WEBHOOK_URL_NOT_ALLOWED" | "WEBHOOK_LIMIT_REACHED" | "WEBHOOK_DELIVERY_NOT_RETRYABLE" | "WEBHOOK_SUBSCRIPTION_DISABLED" | "REPLACED_DOCUMENT_OTHER_ISSUER" | "DOCUMENT_ALREADY_REPLACED" | "INVALID_CREDENTIALS" | "ACCOUNT_LOCKED" | "INVALID_REFRESH_TOKEN" | "INVALID_LINK" | "WEAK_PASSWORD" | "INVALID_CURRENT_PASSWORD" | "PRODUCTION_REQUIREMENTS_NOT_MET" | "PAYMENT_METHOD_UNKNOWN" | "PAYMENTS_MISMATCH" | "INVALID_PAYMENT_TERM" | "FINAL_CONSUMER_LIMIT_EXCEEDED" | "SEQUENCE_EXHAUSTED" | "INTERNAL_ERROR";
             correlationId: string;
             /** @description Con VALIDATION_FAILED, WEAK_PASSWORD e INVALID_CURRENT_PASSWORD. */
             errors?: {
@@ -945,6 +946,10 @@ export interface components {
                 /** @description Forma de pago del catálogo (ficha, tabla 24). */
                 methodCode: string;
                 amount: components["schemas"]["Decimal"];
+                /** @description Plazo de pago (plazo del XML), hasta 2 decimales. Va con timeUnit. */
+                term?: string | null;
+                /** @description Unidad del plazo (unidadTiempo del XML), por ejemplo dias o meses. Va con term. */
+                timeUnit?: string | null;
             }[];
             /**
              * Format: uuid
@@ -1056,6 +1061,10 @@ export interface components {
                 /** @description Forma de pago del catálogo (ficha, tabla 24). */
                 methodCode: string;
                 amount: components["schemas"]["Amount"];
+                /** @description Plazo de pago (plazo del XML), hasta 2 decimales. Va con timeUnit. */
+                term?: string | null;
+                /** @description Unidad del plazo (unidadTiempo del XML), por ejemplo dias o meses. Va con term. */
+                timeUnit?: string | null;
             }[];
         };
         IssuedDocument: {
@@ -1218,6 +1227,10 @@ export interface components {
             payments: {
                 methodCode: string;
                 amount: components["schemas"]["Decimal"];
+                /** @description Plazo de pago; nulo si no lo tiene. */
+                term?: string | null;
+                /** @description Unidad del plazo; nula si no lo tiene. */
+                timeUnit?: string | null;
             }[];
             /** @description Factura que modifica la nota; nulo en los demás comprobantes. */
             modifiedDocument?: {
@@ -1410,6 +1423,8 @@ export interface components {
             legalName: string;
             tradeName?: string | null;
             headOfficeAddress: string;
+            /** @description Teléfono que muestra el RIDE; opcional. */
+            phone?: string | null;
             /**
              * @description Siempre 1 (pruebas): con 2 la petición se rechaza con 422 PRODUCTION_NOT_ENABLED. A producción se pasa con la activación.
              * @enum {string}
@@ -1427,6 +1442,10 @@ export interface components {
              */
             rimpeRegime?: "NONE" | "EMPRENDEDOR" | "NEGOCIO_POPULAR";
         };
+        UpdateTaxpayerRequest: {
+            /** @description Teléfono nuevo; nulo o en blanco lo quita. */
+            phone?: string | null;
+        };
         Taxpayer: {
             /** Format: uuid */
             id: string;
@@ -1434,6 +1453,8 @@ export interface components {
             legalName: string;
             tradeName?: string | null;
             headOfficeAddress: string;
+            /** @description Teléfono que muestra el RIDE. */
+            phone?: string | null;
             /** @enum {string} */
             defaultEnvironment: "1" | "2";
             /**
@@ -2010,6 +2031,39 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Emisor. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Taxpayer"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    updateTaxpayer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Empresa activa. Opcional si el usuario pertenece a una sola; obligatoria si pertenece a varias (400 TENANT_REQUIRED). Una empresa ajena o inexistente responde 403 TENANT_FORBIDDEN. Con una API key es opcional y, si se envía, tiene que ser la empresa de la key (si no, 403 TENANT_FORBIDDEN). */
+                "X-Tenant-Id"?: components["parameters"]["TenantId"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTaxpayerRequest"];
+            };
+        };
+        responses: {
+            /** @description Emisor actualizado. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2696,7 +2750,7 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
-            /** @description Regla fiscal incumplida. errorCode: UNSUPPORTED_CURRENCY, INVALID_ISSUE_DATE, EMISSION_POINT_DISABLED, INVALID_LINE, AMOUNT_TOO_LARGE, TAX_RATE_UNKNOWN, PAYMENT_METHOD_UNKNOWN, INVALID_PAYMENT, PAYMENTS_MISMATCH, FINAL_CONSUMER_LIMIT_EXCEEDED, SEQUENCE_EXHAUSTED o DOCUMENT_XML_INVALID (el XML generado no pasó el esquema del SRI; no se consume secuencial). */
+            /** @description Regla fiscal incumplida. errorCode: UNSUPPORTED_CURRENCY, INVALID_ISSUE_DATE, EMISSION_POINT_DISABLED, INVALID_LINE, AMOUNT_TOO_LARGE, TAX_RATE_UNKNOWN, PAYMENT_METHOD_UNKNOWN, INVALID_PAYMENT, INVALID_PAYMENT_TERM (plazo sin unidad o al revés), PAYMENTS_MISMATCH, FINAL_CONSUMER_LIMIT_EXCEEDED, SEQUENCE_EXHAUSTED o DOCUMENT_XML_INVALID (el XML generado no pasó el esquema del SRI; no se consume secuencial). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2816,7 +2870,7 @@ export interface operations {
                 };
             };
             409: components["responses"]["Problem"];
-            /** @description Regla fiscal incumplida. errorCode: MODIFIED_DOCUMENT_NOT_INVOICE (invoiceId no es una factura), MODIFIED_INVOICE_OTHER_ISSUER (la factura es de otro emisor de la empresa), MODIFIED_INVOICE_NOT_AUTHORIZED (la factura no está autorizada), INVALID_MODIFIED_DOCUMENT_DATE (la factura es posterior a la nota), PAYMENT_METHOD_UNKNOWN, PAYMENTS_MISMATCH (el pago no es igual al total), FINAL_CONSUMER_LIMIT_EXCEEDED (comprador consumidor final y total sobre el límite), TAX_RATE_UNKNOWN, INVALID_LINE (valor del motivo no positivo), AMOUNT_TOO_LARGE, UNSUPPORTED_CURRENCY, INVALID_ISSUE_DATE, EMISSION_POINT_DISABLED, SEQUENCE_EXHAUSTED o DOCUMENT_XML_INVALID (el XML generado no pasó el esquema del SRI; no se consume secuencial). */
+            /** @description Regla fiscal incumplida. errorCode: MODIFIED_DOCUMENT_NOT_INVOICE (invoiceId no es una factura), MODIFIED_INVOICE_OTHER_ISSUER (la factura es de otro emisor de la empresa), MODIFIED_INVOICE_NOT_AUTHORIZED (la factura no está autorizada), INVALID_MODIFIED_DOCUMENT_DATE (la factura es posterior a la nota), PAYMENT_METHOD_UNKNOWN, INVALID_PAYMENT_TERM (plazo sin unidad o al revés), PAYMENTS_MISMATCH (el pago no es igual al total), FINAL_CONSUMER_LIMIT_EXCEEDED (comprador consumidor final y total sobre el límite), TAX_RATE_UNKNOWN, INVALID_LINE (valor del motivo no positivo), AMOUNT_TOO_LARGE, UNSUPPORTED_CURRENCY, INVALID_ISSUE_DATE, EMISSION_POINT_DISABLED, SEQUENCE_EXHAUSTED o DOCUMENT_XML_INVALID (el XML generado no pasó el esquema del SRI; no se consume secuencial). */
             422: {
                 headers: {
                     [name: string]: unknown;

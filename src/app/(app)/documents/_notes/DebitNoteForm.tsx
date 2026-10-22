@@ -7,12 +7,14 @@ import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema";
 import { Field } from "@/components/Field";
 import { ErrorNotice } from "@/components/Notice";
+import { PaymentTermFields } from "@/components/PaymentTermFields";
 import { PreviewTotals } from "@/components/PreviewTotals";
 import { catalogLabel } from "@/lib/catalogLabels";
 import { compare, parse, ZERO } from "@/lib/decimal";
 import { normalizeInvoiceNumber } from "@/lib/invoiceNumber";
 import { previewInvoice, sumAmounts } from "@/lib/invoicePreview";
 import { loadIssuer, type Point } from "@/lib/issuer";
+import { termFields, validTerm } from "@/lib/paymentTerm";
 import { useApi } from "@/lib/useApi";
 
 import { AuthorizedInvoice, emptyManualInvoice, InvoiceFacts, ManualInvoiceFields, ManualInvoiceNotice, type ManualInvoice } from "./NoteSource";
@@ -30,7 +32,7 @@ const FIELDS: Record<string, string> = {
   "modifiedDocument.issueDate": "Fecha de la factura",
 };
 const REASON_FIELDS: Record<string, string> = { reason: "razón", value: "valor", ivaRateCode: "tarifa de IVA" };
-const PAYMENT_FIELDS: Record<string, string> = { methodCode: "forma de pago", amount: "importe" };
+const PAYMENT_FIELDS: Record<string, string> = { methodCode: "forma de pago", amount: "importe", term: "plazo", timeUnit: "unidad de tiempo" };
 
 /** Nombre, para el usuario, del dato de la nota que el servidor rechazó. */
 function fieldLabel(field: string): string {
@@ -79,7 +81,7 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
   const [reasons, setReasons] = useState<Reason[]>(() => [{ key: 0, reason: "", value: "", rateCode: "" }]);
   const [methodChoice, setMethodChoice] = useState("");
   const [paymentAmount, setPaymentAmount] = useState<string | null>(null);
-
+  const [term, setTerm] = useState({ term: "", timeUnit: "" });
 
   const issuer = useApi(() => loadIssuer(invoice?.taxpayerId), [tenantId, invoice?.taxpayerId ?? null]);
   const rates = useApi(() => unwrap(api.GET("/catalogs/tax-rates")), []);
@@ -128,6 +130,7 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
     ...(!preview.complete ? ["indicar el valor de cada motivo"] : []),
     ...(preview.complete && !paymentMatches ? ["que el pago sume el total"] : []),
     ...(methodCode === "" ? ["elegir la forma de pago"] : []),
+    ...(!validTerm(term.term) ? ["corregir el plazo de pago"] : []),
   ];
   const ready = missing.length === 0 && issuer.data != null && point !== undefined;
 
@@ -141,7 +144,7 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
         establishmentCode: point.establishmentCode,
         emissionPointCode: point.emissionPointCode,
         reasons: rows.map((row) => ({ reason: row.reason.trim(), value: row.value.trim(), ivaRateCode: row.rateCode })),
-        payments: [{ methodCode, amount: amount.trim() }],
+        payments: [{ methodCode, amount: amount.trim(), ...termFields(term.term, term.timeUnit) }],
       };
       const body: DebitNoteRequest = invoice
         ? { ...header, invoiceId: invoice.id }
@@ -252,6 +255,7 @@ function Editor({ tenantId, invoice }: { tenantId: string; invoice: Document | n
             >
               <input className="num" inputMode="decimal" value={amount} onChange={(event) => setPaymentAmount(event.target.value)} />
             </Field>
+            <PaymentTermFields term={term.term} timeUnit={term.timeUnit} onChange={(patch) => setTerm((current) => ({ ...current, ...patch }))} />
           </div>
         </div>
         <div>

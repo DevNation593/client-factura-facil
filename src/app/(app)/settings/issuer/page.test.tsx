@@ -87,6 +87,7 @@ describe("Emisor", () => {
       legalName: "Comercial Andina S.A.",
       tradeName: "Andina",
       headOfficeAddress: "Av. Amazonas N34-12, Quito",
+      phone: null,
       defaultEnvironment: "1",
       accountingRequired: false,
       specialTaxpayerCode: null,
@@ -113,6 +114,43 @@ describe("Emisor", () => {
 
     expect(await within(block).findByText(/La próxima factura será la 124/)).toBeInTheDocument();
     expect(api.to("PUT", `/emission-points/${POINT.id}/sequence`)[0]?.body).toEqual({ environment: "1", documentType: "01", nextValue: 124 });
+  });
+
+  it("sends the phone typed at registration", async () => {
+    const api = stubApi({
+      "GET /taxpayers": () => json(200, []),
+      "POST /taxpayers": () => json(201, TAXPAYER),
+    });
+    renderWithTenant(<EmisorPage />);
+    await screen.findByLabelText("RUC");
+
+    await fillTaxpayer("1790012345001");
+    await userEvent.type(screen.getByLabelText("Teléfono"), " 02 256 9442 ");
+    await userEvent.click(screen.getByRole("button", { name: "Registrar emisor" }));
+
+    await waitFor(() => expect(api.to("POST", "/taxpayers")).toHaveLength(1));
+    expect(api.to("POST", "/taxpayers")[0]?.body).toMatchObject({ phone: "02 256 9442" });
+  });
+
+  it("changes the phone of a registered taxpayer", async () => {
+    let current: unknown = { ...TAXPAYER, phone: "022569442" };
+    const api = issuerApi(() => NOT_READY, {
+      "GET /taxpayers": () => json(200, [current]),
+      "PATCH /taxpayers/:id": () => {
+        current = { ...TAXPAYER, phone: "+593 2 256 9442" };
+        return json(200, current);
+      },
+    });
+    renderWithTenant(<EmisorPage />);
+
+    const phone = await screen.findByLabelText("Teléfono del emisor");
+    expect(phone).toHaveValue("022569442");
+    await userEvent.clear(phone);
+    await userEvent.type(phone, "+593 2 256 9442");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
+
+    expect(await screen.findByText(/Sale en los comprobantes que emita desde ahora/)).toBeInTheDocument();
+    expect(api.to("PATCH", `/taxpayers/${TAXPAYER.id}`)[0]?.body).toEqual({ phone: "+593 2 256 9442" });
   });
 
   it("shows the server's rejection next to the form and keeps what was typed", async () => {

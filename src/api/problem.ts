@@ -53,6 +53,7 @@ const MESSAGES: Record<string, string> = {
   SEQUENCE_ALREADY_USED: "El secuencial ya no se puede cambiar: el punto de emisión ya tiene comprobantes.",
   IDENTIFICATION_INVALID: "El número de identificación no corresponde al tipo elegido.",
   PAYMENTS_MISMATCH: "La suma de los pagos no coincide con el total de la factura.",
+  INVALID_PAYMENT_TERM: "El plazo de pago lleva su unidad de tiempo.",
   FINAL_CONSUMER_LIMIT_EXCEEDED: "Una factura a consumidor final no puede superar el monto permitido: identifique al cliente.",
   CERTIFICATE_UNREADABLE: "El archivo no es un certificado .p12 válido o la contraseña es incorrecta.",
   CERTIFICATE_EXPIRED: "El certificado está caducado.",
