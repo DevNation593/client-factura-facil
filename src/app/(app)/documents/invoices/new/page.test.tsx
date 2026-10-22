@@ -156,6 +156,34 @@ describe("Nueva factura", () => {
     });
   });
 
+  it("sends the payment term with its unit, and nothing when it is empty", async () => {
+    const stub = api(() => json(202, ISSUED));
+    renderWithTenant(<NuevaFacturaPage />);
+    await fillInvoice();
+
+    await userEvent.type(screen.getByLabelText("Plazo"), "30");
+    await userEvent.selectOptions(screen.getByLabelText("Unidad de tiempo"), "meses");
+    await userEvent.click(screen.getByRole("button", { name: "Emitir factura" }));
+
+    await waitFor(() => expect(stub.to("POST", "/invoices")).toHaveLength(1));
+    expect((stub.to("POST", "/invoices")[0]?.body as { payments: unknown[] }).payments).toEqual([
+      { methodCode: "20", amount: "23.00", term: "30", timeUnit: "meses" },
+    ]);
+  });
+
+  it("does not issue with a payment term that is not a number", async () => {
+    const stub = api(() => json(202, ISSUED));
+    renderWithTenant(<NuevaFacturaPage />);
+    await fillInvoice();
+
+    await userEvent.type(screen.getByLabelText("Plazo"), "treinta");
+
+    expect(screen.getByLabelText("Plazo")).toHaveAccessibleDescription(/hasta dos decimales/);
+    expect(screen.getByRole("button", { name: "Emitir factura" })).toBeDisabled();
+    expect(screen.getByText(/corregir el plazo de pago/)).toBeInTheDocument();
+    expect(stub.to("POST", "/invoices")).toHaveLength(0);
+  });
+
   it("removes the draft and opens the document once issued", async () => {
     api(() => json(202, ISSUED));
     renderWithTenant(<NuevaFacturaPage />);

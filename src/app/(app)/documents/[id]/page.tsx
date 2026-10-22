@@ -290,6 +290,7 @@ function PaymentSummary({ payments }: { payments: Document["payments"] }) {
           return (
             <li key={index}>
               {name ? catalogLabel(name) : payment.methodCode}: {payment.amount}
+              {payment.term ? ` (plazo: ${payment.term} ${payment.timeUnit ?? ""})` : null}
             </li>
           );
         })}
