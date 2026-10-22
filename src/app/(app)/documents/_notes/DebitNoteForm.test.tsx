@@ -165,6 +165,25 @@ describe("Nota de débito", () => {
     });
   });
 
+  it("sendsThePaymentTermWithItsUnit", async () => {
+    route.search = "";
+    const stub = api();
+    renderWithTenant(<NuevaNotaPage />);
+    await userEvent.type(await screen.findByLabelText("Número de la factura"), "001001000000123");
+    fireEvent.change(screen.getByLabelText("Fecha de la factura"), { target: { value: "2026-10-01" } });
+    await userEvent.click(screen.getByRole("combobox", { name: "Cliente" }));
+    await userEvent.click(await screen.findByRole("option", { name: /María Pérez/ }));
+    await fillReason(1, "Intereses", "10.00");
+    await userEvent.type(screen.getByLabelText("Plazo"), "15");
+
+    await userEvent.click(emitButton());
+
+    await waitFor(() => expect(stub.to("POST", "/debit-notes")).toHaveLength(1));
+    expect((stub.to("POST", "/debit-notes")[0]?.body as { payments: unknown[] }).payments).toEqual([
+      { methodCode: "01", amount: "11.50", term: "15", timeUnit: "dias" },
+    ]);
+  });
+
   it("emitDisabledUntilComplete", async () => {
     route.search = `?factura=${INVOICE_ID}`;
     api();

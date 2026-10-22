@@ -67,6 +67,7 @@ function TaxpayerForm({ onCreated }: { onCreated: () => void }) {
     legalName: "",
     tradeName: "",
     headOfficeAddress: "",
+    phone: "",
     accountingRequired: false,
     specialTaxpayerCode: "",
     withholdingAgentCode: "",
@@ -101,6 +102,7 @@ function TaxpayerForm({ onCreated }: { onCreated: () => void }) {
             legalName: form.legalName.trim(),
             tradeName: form.tradeName.trim() || null,
             headOfficeAddress: form.headOfficeAddress.trim(),
+            phone: form.phone.trim() || null,
             defaultEnvironment: "1",
             accountingRequired: form.accountingRequired,
             specialTaxpayerCode: form.specialTaxpayerCode.trim() || null,
@@ -137,6 +139,9 @@ function TaxpayerForm({ onCreated }: { onCreated: () => void }) {
         </Field>
         <Field label="Dirección de la matriz" error={errors.headOfficeAddress}>
           <input value={form.headOfficeAddress} onChange={(event) => set("headOfficeAddress", event.target.value)} maxLength={300} required />
+        </Field>
+        <Field label="Teléfono" hint="Opcional. Sale en el RIDE." error={errors.phone}>
+          <input value={form.phone} onChange={(event) => set("phone", event.target.value)} inputMode="tel" maxLength={30} />
         </Field>
         <Field label="Régimen RIMPE">
           <select value={form.rimpeRegime} onChange={(event) => set("rimpeRegime", event.target.value as "NONE" | "EMPRENDEDOR")}>
@@ -195,6 +200,8 @@ function IssuerDetails({
         ) : null}
         <dt>Dirección de la matriz</dt>
         <dd>{taxpayer.headOfficeAddress}</dd>
+        <dt>Teléfono</dt>
+        <dd>{editable ? <PhoneForm taxpayer={taxpayer} onSaved={onChanged} /> : taxpayer.phone || "—"}</dd>
         <dt>Ambiente</dt>
         <dd>{ENVIRONMENTS[taxpayer.defaultEnvironment] ?? taxpayer.defaultEnvironment}</dd>
       </dl>
@@ -212,6 +219,60 @@ function IssuerDetails({
 
       <ProductionStep taxpayer={taxpayer} owner={owner} onActivated={onChanged} />
     </>
+  );
+}
+
+/** El teléfono es lo único del emisor que se cambia después del alta; vale para los comprobantes nuevos. */
+function PhoneForm({ taxpayer, onSaved }: { taxpayer: Taxpayer; onSaved: () => void }) {
+  const [value, setValue] = useState(taxpayer.phone ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<unknown>(undefined);
+  const [saved, setSaved] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) {
+      return;
+    }
+    setSaving(true);
+    setError(undefined);
+    setSaved(false);
+    try {
+      const updated = await unwrap(
+        api.PATCH("/taxpayers/{id}", { params: { path: { id: taxpayer.id } }, body: { phone: value.trim() || null } }),
+      );
+      setValue(updated.phone ?? "");
+      setSaved(true);
+      onSaved();
+    }
+    catch (problem) {
+      setError(problem);
+    }
+    finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} noValidate>
+      <label className="sr-only" htmlFor="telefono-emisor">
+        Teléfono del emisor
+      </label>
+      <input
+        id="telefono-emisor"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        inputMode="tel"
+        maxLength={30}
+        size={18}
+        placeholder="Sin teléfono"
+      />{" "}
+      <button type="submit" className="btn-link" disabled={saving}>
+        Guardar
+      </button>
+      {saved ? <span role="status"> Guardado. Sale en los comprobantes que emita desde ahora.</span> : null}
+      <ErrorNotice error={error} />
+    </form>
   );
 }
 
