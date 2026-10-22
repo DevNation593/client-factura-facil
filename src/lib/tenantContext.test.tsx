@@ -34,12 +34,12 @@ function apiError(status: number, errorCode: string): ApiError {
 describe("TenantProvider", () => {
   it("sends the user to sign in again when the session has expired", async () => {
     const toLogin = vi.spyOn(sessionNavigation, "toLogin").mockImplementation(() => {});
-    window.history.pushState({}, "", "/documentos?page=2");
+    window.history.pushState({}, "", "/documents?page=2");
     stubApi({ "GET /tenants": () => problem(401, "UNAUTHENTICATED") });
     renderScreen();
 
     // Vuelve después exactamente a donde estaba.
-    await waitFor(() => expect(toLogin).toHaveBeenCalledWith("/documentos?page=2"));
+    await waitFor(() => expect(toLogin).toHaveBeenCalledWith("/documents?page=2"));
     window.history.pushState({}, "", "/");
     // Y no confunde la sesión caducada con no tener empresa.
     expect(screen.queryByText(/elija o cree una empresa/)).not.toBeInTheDocument();
@@ -123,7 +123,7 @@ describe("TenantProvider", () => {
 
     await api.GET("/customers");
 
-    await waitFor(() => expect(leave).toHaveBeenCalledWith("/empresas"));
+    await waitFor(() => expect(leave).toHaveBeenCalledWith("/settings/companies"));
     expect(activeTenantId()).toBeNull();
   });
 
@@ -177,19 +177,19 @@ describe("TenantProvider", () => {
 
 describe("ErrorNotice", () => {
   it("offers to sign in again when a call fails because the session ended", () => {
-    route.pathname = "/clientes";
+    route.pathname = "/catalogs/customers";
     render(<ErrorNotice error={apiError(401, "UNAUTHENTICATED")} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("Su sesión terminó.");
-    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/ingresar?volver=%2Fclientes");
+    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/sign-in?volver=%2Fcatalogs%2Fcustomers");
   });
 
   it("comes back to the same search or record after signing in, not just to the same screen", () => {
-    route.pathname = "/documentos";
+    route.pathname = "/documents";
     route.search = "?page=3";
     render(<ErrorNotice error={apiError(401, "UNAUTHENTICATED")} />);
 
-    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/ingresar?volver=%2Fdocumentos%3Fpage%3D3");
+    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/sign-in?volver=%2Fdocuments%3Fpage%3D3");
   });
 
   it("has no link for other errors", () => {

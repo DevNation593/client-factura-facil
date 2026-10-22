@@ -20,8 +20,8 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
         <button type="button" className="btn btn-primary" onClick={reset}>
           Reintentar
         </button>
-        <Link href="/documentos">Ir a los comprobantes</Link>
-        <Link href="/facturas/borradores">Ver borradores</Link>
+        <Link href="/documents">Ir a los comprobantes</Link>
+        <Link href="/documents/invoices/drafts">Ver borradores</Link>
       </div>
       {error.digest ? <p className="field-hint">Si vuelve a ocurrir, indique este código a soporte: {error.digest}</p> : null}
     </div>

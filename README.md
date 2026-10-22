@@ -22,8 +22,8 @@ La API, el contrato, la infraestructura, la documentación y las pruebas con nav
 |---|---|
 | `src/server/` | Configuración, sesión cifrada, llamadas a las cuentas de la API y reglas del proxy. Solo código de servidor. |
 | `src/app/auth/`, `src/app/api/` | Ingreso, registro, confirmación del correo, recuperación de contraseña y salida; estado de la sesión y el proxy de la API. |
-| `src/app/ingresar`, `registro`, `verificar-correo`, `olvide-contrasena`, `restablecer-contrasena` | Pantallas sin sesión. |
-| `src/app/(app)/` | Las pantallas, que exigen sesión: comprobantes, facturas, clientes, productos, configuración, integraciones y la cuenta. |
+| `src/app/sign-in`, `sign-up`, `verify-email`, `forgot-password`, `reset-password` | Pantallas sin sesión. |
+| `src/app/(app)/` | Las pantallas, que exigen sesión, en una carpeta por módulo y dentro una por submódulo: `documents/` (comprobantes), `catalogs/` (catálogos) y `settings/` (configuración), más `account/` (la cuenta). Los módulos y su orden en el menú están en `src/lib/modules.ts`. |
 | `src/api/` | Cliente tipado de la API y traducción de sus errores a mensajes para el usuario. |
 | `src/lib/` | Aritmética decimal, vista previa de la factura, borradores, estados del comprobante, empresa activa. |
 | `src/components/` | Marco de la aplicación y piezas de formulario. |
@@ -61,7 +61,13 @@ Para arrancar todo en local (infraestructura, API y esta aplicación), ver [docs
 
 - **Las pruebas con navegador viven en el repositorio de la API**, en [`e2e/`](https://github.com/DevNation593/api-emite-facil/blob/dev/e2e/README.md): recorren la aplicación completa (esta compilación de producción y el jar de la API) contra un SRI simulado. Aquí las pantallas se prueban como componentes contra una API simulada, y el código de servidor (ingreso, renovación, cierre, proxy) contra respuestas simuladas de la API.
 - **Solo se ha visto en Chromium**, en escritorio y en el ancho de un teléfono (375 px), donde ninguna pantalla principal se desplaza de lado; las tablas anchas se desplazan dentro de su caja. Lo que la revisión de las pantallas encontró y cómo quedó está en el [doc 15](https://github.com/DevNation593/api-emite-facil/blob/dev/docs/15-produccion.md).
-- **"Comprobantes" tiene un listado por tipo del SRI** (facturas, notas de crédito y de débito, guías de remisión, liquidaciones de compra y retenciones), filtrado con `documentType`. Solo se emiten facturas y notas: los listados de guías, liquidaciones y retenciones avisan de que la plataforma aún no los emite y no ofrecen botón de emisión.
+- **Módulos y submódulos.** El menú muestra solo módulos y, debajo de cada uno, sus submódulos; cada submódulo es una carpeta dentro de la de su módulo y su dirección cuelga de la del módulo:
+  - **Comprobantes** (`/documents`): Facturas, Notas de crédito, Notas de débito, Guías de remisión, Liquidaciones de compra y Retenciones, cada uno con su listado filtrado con `documentType`. La emisión vive dentro de su submódulo, en pestañas: Facturas tiene Emitidas, Borradores y Nueva factura (`/documents/invoices/drafts`, `/documents/invoices/new`), y cada nota su Nueva (`/documents/credit-notes/new`, `/documents/debit-notes/new`). Guías, liquidaciones y retenciones solo tienen el listado, que avisa de que la plataforma aún no las emite. El detalle de cualquier comprobante es `/documents/{id}`.
+  - **Catálogos** (`/catalogs`): Clientes y Productos.
+  - **Configuración** (`/settings`): Empresas, Emisor, Certificado e Integraciones (esta, solo para propietario y administradores).
+
+  La dirección de un módulo a secas abre su primer submódulo.
+- **Las direcciones van en inglés** (`/documents/invoices`, `/catalogs/customers`, `/sign-in`…), como las carpetas de `src/app`; los textos siguen en español. Las direcciones de antes, en español (`/documentos`, `/ingresar`, `/verificar-correo`…) o en inglés sin módulo (`/customers`, `/invoices/new`, `/notes/new?tipo=debito`…), redirigen directo a las nuevas con su consulta y su fragmento, así que los enlaces de los correos de la API siguen funcionando. La lista está en `src/server/legacyRoutes.ts`.
 - **Una sola forma de pago por factura** en el editor. Los productos, como los clientes, se buscan: la lista de cada línea muestra los 20 primeros resultados.
 - **"Integraciones"** (propietario y administradores) registra las direcciones a las que avisar de lo que pasa con los comprobantes, muestra su secreto una sola vez y enseña los 20 avisos más recientes de cada una, sin paginar los anteriores. Si la instalación tiene los avisos apagados, registrar una dirección responde con un mensaje que lo dice.
 - **No hay equipo ni invitaciones:** cada usuario trabaja en las empresas que crea, como propietario.

@@ -17,5 +17,5 @@ export async function POST(request: NextRequest) {
   const session = await readSession(config);
   await logout(config, session);
   await clearSession();
-  return NextResponse.json({ redirectTo: "/ingresar" }, { headers: NO_STORE });
+  return NextResponse.json({ redirectTo: "/sign-in" }, { headers: NO_STORE });
 }
