@@ -1,6 +1,14 @@
 import { redirect } from "next/navigation";
 
-/** La portada es el monitor de facturas; quien no tenga sesión acaba en la pantalla de ingreso. */
-export default function Home() {
-  redirect("/documents/invoices");
+import { readConfig } from "@/server/config";
+import { readSession } from "@/server/sessionStore";
+
+import { Landing } from "./Landing";
+
+/** Sin sesión, la portada presenta la aplicación; con sesión, se va directo a las facturas. */
+export default async function Home() {
+  if ((await readSession(readConfig())) !== null) {
+    redirect("/documents/invoices");
+  }
+  return <Landing />;
 }
