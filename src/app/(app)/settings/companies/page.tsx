@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { api, unwrap } from "@/api/client";
 import { Field } from "@/components/Field";
 import { ErrorNotice, Notice } from "@/components/Notice";
+import { Skeleton } from "@/components/Skeleton";
 import { ROLE_LABELS } from "@/lib/roles";
 import { useTenant } from "@/lib/tenantContext";
 
@@ -50,39 +51,41 @@ export default function EmpresasPage() {
         <h1>Empresas</h1>
       </div>
       <ErrorNotice error={error} />
-      {loading ? <p>Cargando…</p> : null}
+      {loading ? <Skeleton lines={3} /> : null}
       {!loading && tenants.length === 0 && !error ? (
         <Notice>Todavía no pertenece a ninguna empresa. Cree la suya para empezar a facturar.</Notice>
       ) : null}
       {tenants.length > 0 ? (
-        <table className="ruled">
-          <thead>
-            <tr>
-              <th scope="col">Empresa</th>
-              <th scope="col">Su rol</th>
-              <th scope="col">
-                <span className="sr-only">Acción</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {tenants.map((tenant) => (
-              <tr key={tenant.id}>
-                <td>{tenant.name}</td>
-                <td>{ROLE_LABELS[tenant.role] ?? tenant.role}</td>
-                <td>
-                  {active?.id === tenant.id ? (
-                    <span>En uso</span>
-                  ) : (
-                    <button type="button" className="btn-link" onClick={() => use(tenant.id)}>
-                      Usar {tenant.name}
-                    </button>
-                  )}
-                </td>
+        <div className="table-scroll">
+          <table className="ruled">
+            <thead>
+              <tr>
+                <th scope="col">Empresa</th>
+                <th scope="col">Su rol</th>
+                <th scope="col">
+                  <span className="sr-only">Acción</span>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {tenants.map((tenant) => (
+                <tr key={tenant.id}>
+                  <td>{tenant.name}</td>
+                  <td>{ROLE_LABELS[tenant.role] ?? tenant.role}</td>
+                  <td>
+                    {active?.id === tenant.id ? (
+                      <span>En uso</span>
+                    ) : (
+                      <button type="button" className="btn-link" onClick={() => use(tenant.id)}>
+                        Usar {tenant.name}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
 
       <h2>Crear una empresa</h2>

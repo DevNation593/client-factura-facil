@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { api, unwrap } from "@/api/client";
 import { ApiError } from "@/api/problem";
 import type { components } from "@/api/schema";
+import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
@@ -153,7 +154,7 @@ export default function ClientesPage() {
       </form>
       <ErrorNotice error={customers.error} />
       {customers.data && customers.data.items.length === 0 ? (
-        <p className="empty">{q ? "Ningún cliente coincide con la búsqueda." : "Aún no hay clientes. Registre el primero más abajo."}</p>
+        <EmptyState icon="users">{q ? "Ningún cliente coincide con la búsqueda." : "Aún no hay clientes. Registre el primero más abajo."}</EmptyState>
       ) : null}
       {customers.data && customers.data.items.length > 0 ? (
         <div className="table-scroll">

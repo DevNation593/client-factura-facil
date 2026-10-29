@@ -5,10 +5,12 @@ import { useState, type FormEvent } from "react";
 import { api, unwrap } from "@/api/client";
 import { ApiError } from "@/api/problem";
 import type { components } from "@/api/schema";
+import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
 import { ProductionStep } from "@/components/ProductionStep";
+import { Skeleton } from "@/components/Skeleton";
 import { canWrite, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
 
@@ -41,7 +43,7 @@ export default function EmisorPage() {
         <h1>Emisor</h1>
       </div>
       <ErrorNotice error={taxpayers.error} />
-      {taxpayers.loading ? <p>Cargando…</p> : null}
+      {taxpayers.loading ? <Skeleton lines={5} /> : null}
       {taxpayers.data && !taxpayer ? (
         editable ? (
           <TaxpayerForm onCreated={() => taxpayers.reload()} />
@@ -211,7 +213,7 @@ function IssuerDetails({
         El número de una factura es establecimiento, punto de emisión y secuencial: por ejemplo 001-001-000000123.
       </p>
       <ErrorNotice error={establishments.error} />
-      {establishments.data?.length === 0 ? <p className="empty">Aún no hay establecimientos.</p> : null}
+      {establishments.data?.length === 0 ? <EmptyState icon="building">Aún no hay establecimientos.</EmptyState> : null}
       {establishments.data?.map((establishment) => (
         <EstablishmentBlock key={establishment.id} establishment={establishment} taxpayer={taxpayer} editable={editable} />
       ))}
@@ -377,32 +379,34 @@ function EstablishmentBlock({ establishment, taxpayer, editable }: { establishme
       </h3>
       <p>{establishment.address}</p>
       <ErrorNotice error={points.error} />
-      {points.data?.length === 0 ? <p className="empty">Sin puntos de emisión: añada uno para poder facturar desde aquí.</p> : null}
+      {points.data?.length === 0 ? <EmptyState icon="invoice">Sin puntos de emisión: añada uno para poder facturar desde aquí.</EmptyState> : null}
       {points.data && points.data.length > 0 ? (
-        <table className="ruled">
-          <thead>
-            <tr>
-              <th scope="col">Punto de emisión</th>
-              <th scope="col">Estado</th>
-              {editable ? <th scope="col">Secuencial inicial de facturas</th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {points.data.map((point) => (
-              <tr key={point.id}>
-                <td className="code">
-                  {establishment.code}-{point.code}
-                </td>
-                <td>{point.enabled ? "Habilitado" : "Deshabilitado"}</td>
-                {editable ? (
-                  <td>
-                    <SequenceForm point={point} label={`${establishment.code}-${point.code}`} environment={taxpayer.defaultEnvironment} />
-                  </td>
-                ) : null}
+        <div className="table-scroll">
+          <table className="ruled">
+            <thead>
+              <tr>
+                <th scope="col">Punto de emisión</th>
+                <th scope="col">Estado</th>
+                {editable ? <th scope="col">Secuencial inicial de facturas</th> : null}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {points.data.map((point) => (
+                <tr key={point.id}>
+                  <td className="code">
+                    {establishment.code}-{point.code}
+                  </td>
+                  <td>{point.enabled ? "Habilitado" : "Deshabilitado"}</td>
+                  {editable ? (
+                    <td>
+                      <SequenceForm point={point} label={`${establishment.code}-${point.code}`} environment={taxpayer.defaultEnvironment} />
+                    </td>
+                  ) : null}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
       {editable ? (
         <>
