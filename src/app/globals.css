@@ -1187,6 +1187,8 @@ input[type="radio"] {
     /* Como en escritorio, la hoja puede encoger por debajo del ancho de su contenido: lo ancho se
        desplaza dentro de su caja (.table-scroll), nunca la página entera. */
     grid-template-columns: minmax(0, 1fr);
+    /* Lo que sobra de alto en una pantalla corta es de la hoja, no de la barra del menú. */
+    grid-template-rows: auto 1fr;
   }
 
   /* En el teléfono el menú es una barra arriba; lo demás se abre con su botón, sobre la hoja. */
