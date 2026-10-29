@@ -1,9 +1,18 @@
+"use client";
+
+import { useState } from "react";
+
 import { describeState } from "@/lib/documentStates";
 
-/** Estado de un comprobante en palabras, con una marca de forma distinta por tipo: no depende solo del color. */
+/**
+ * Estado de un comprobante en palabras, con una marca de forma distinta por tipo: no depende solo del
+ * color. Si cambia mientras se mira (una lista que se refresca sola), salta para que se note.
+ */
 export function StateBadge({ state }: { state: string }) {
   const info = describeState(state);
-  return <span className={`state state-${info.tone}`}>{info.label}</span>;
+  const [shownFirst] = useState(state);
+  const changed = state !== shownFirst;
+  return <span className={`state state-${info.tone}${changed ? " state-changed" : ""}`}>{info.label}</span>;
 }
 
 /** El estado como sello, para la hoja del comprobante. */

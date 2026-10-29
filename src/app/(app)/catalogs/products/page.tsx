@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { api, unwrap } from "@/api/client";
 import { ApiError } from "@/api/problem";
 import type { components } from "@/api/schema";
+import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
@@ -163,7 +164,7 @@ export default function ProductosPage() {
       </form>
       <ErrorNotice error={products.error} />
       {products.data && products.data.items.length === 0 ? (
-        <p className="empty">{q ? "Ningún producto coincide con la búsqueda." : "Aún no hay productos."}</p>
+        <EmptyState icon="box">{q ? "Ningún producto coincide con la búsqueda." : "Aún no hay productos."}</EmptyState>
       ) : null}
       {products.data && products.data.items.length > 0 ? (
         <div className="table-scroll">

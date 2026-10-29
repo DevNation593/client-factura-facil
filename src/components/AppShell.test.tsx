@@ -99,6 +99,34 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Retenciones" })).toHaveAttribute("href", "/documents/withholdings");
   });
 
+  it("opens the menu on a phone with its button and closes it on reaching another screen", async () => {
+    route.pathname = "/documents/invoices";
+    stubApi({ "GET /tenants": () => json(200, [TENANT]) });
+    // Un elemento nuevo en cada render: con el mismo, React no vuelve a pintar el marco.
+    const shell = () => (
+      <AppShell userName="Ana Pérez">
+        <p>contenido</p>
+      </AppShell>
+    );
+    const { rerender } = render(shell());
+    await screen.findByText("Comercial Andina");
+    const toggle = screen.getByRole("button", { name: "Menú" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAttribute("aria-controls", "menu-principal");
+
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    route.pathname = "/catalogs/products";
+    rerender(shell());
+    expect(screen.getByRole("button", { name: "Menú" })).toHaveAttribute("aria-expanded", "false");
+
+    // Volver a la pantalla donde se abrió (con Atrás, por ejemplo) no lo abre otra vez.
+    route.pathname = "/documents/invoices";
+    rerender(shell());
+    expect(screen.getByRole("button", { name: "Menú" })).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("signs out and leaves for the address the server gives", async () => {
     const leave = vi.spyOn(sessionNavigation, "leave").mockImplementation(() => {});
     const api = stubApi({
