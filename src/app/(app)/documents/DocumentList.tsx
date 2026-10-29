@@ -19,12 +19,17 @@ import { canBill, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
 import { usePolling } from "@/lib/usePolling";
 
+import { DocumentSummary } from "./DocumentSummary";
+
 type DocumentTypeCode = components["schemas"]["DocumentTypeCode"];
 
 const PAGE_SIZE = 20;
 
-/** Monitor de un tipo de comprobante: qué se emitió y en qué punto está cada uno ante el SRI. */
-export function DocumentList({ type }: { type: DocumentTypeCode }) {
+/**
+ * Monitor de un tipo de comprobante: qué se emitió y en qué punto está cada uno ante el SRI. Con
+ * `summary`, encima de la lista, el resumen de los últimos.
+ */
+export function DocumentList({ type, summary = false }: { type: DocumentTypeCode; summary?: boolean }) {
   const { active } = useTenant();
   const section = documentSubmodule(type);
   const [page, setPage] = useState(0);
@@ -47,6 +52,7 @@ export function DocumentList({ type }: { type: DocumentTypeCode }) {
       <SubmoduleTabs type={type} />
       {section.issue ? null : <Notice>La plataforma todavía no emite {section.title.toLowerCase()}.</Notice>}
       <ErrorNotice error={documents.error} />
+      {summary ? <DocumentSummary type={type} /> : null}
       {documents.loading && !documents.data ? <Skeleton lines={6} /> : null}
       {documents.data && documents.data.items.length === 0 ? (
         <EmptyState
