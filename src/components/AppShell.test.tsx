@@ -99,6 +99,31 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Retenciones" })).toHaveAttribute("href", "/documents/withholdings");
   });
 
+  it("opens the menu on a phone with its button and closes it on reaching another screen", async () => {
+    route.pathname = "/documents/invoices";
+    stubApi({ "GET /tenants": () => json(200, [TENANT]) });
+    const { rerender } = render(
+      <AppShell userName="Ana Pérez">
+        <p>contenido</p>
+      </AppShell>,
+    );
+    await screen.findByText("Comercial Andina");
+    const toggle = screen.getByRole("button", { name: "Menú" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAttribute("aria-controls", "menu-principal");
+
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    route.pathname = "/catalogs/products";
+    rerender(
+      <AppShell userName="Ana Pérez">
+        <p>contenido</p>
+      </AppShell>,
+    );
+    expect(screen.getByRole("button", { name: "Menú" })).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("signs out and leaves for the address the server gives", async () => {
     const leave = vi.spyOn(sessionNavigation, "leave").mockImplementation(() => {});
     const api = stubApi({
