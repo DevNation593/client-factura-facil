@@ -382,31 +382,145 @@
   padding: 1.1rem 1.25rem;
 }
 
-.closing {
-  background: var(--papel-hundido);
-  border-top: 6px solid var(--tinta);
-  margin: 1rem auto 0;
-  max-width: 72rem;
-  padding: 3rem 1.5rem;
-  text-align: center;
+/* Planes: columnas pautadas como las del talonario; el recomendado lleva el filo de tinta. */
+.plans {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
 }
 
-.closing h2 {
-  font-size: 1.75rem;
+.plans > li {
+  border-left: 1px solid var(--pauta);
+  border-top: 6px solid transparent;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.25rem 1.5rem;
+  position: relative;
+}
+
+.plans > li:first-child {
+  border-left: 0;
+}
+
+.plans > li.featured {
+  background: var(--papel-hundido);
+  border-left-color: transparent;
+  border-top-color: var(--tinta);
+}
+
+.plans > li.featured + li {
+  border-left-color: transparent;
+}
+
+.badge {
+  background: var(--sello);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.15rem 0.5rem;
+  position: absolute;
+  right: 1rem;
+  top: 1.3rem;
+}
+
+.plans h3 {
+  font-size: 1.1rem;
   margin: 0;
 }
 
-.closing p {
+.price {
   color: var(--tinta-suave);
-  margin: 0.6rem auto 1.4rem;
+  margin-top: 0.6rem;
 }
 
-.closing :global(.btn) {
+.price strong {
+  color: var(--tinta);
+  font-family: var(--serif);
+  font-size: 2.25rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.monthly {
+  color: var(--tinta-suave);
+  font-size: 0.82rem;
+  margin-top: 0.25rem;
+}
+
+.limits {
+  border-top: 2px solid var(--tinta);
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.limits li {
+  border-bottom: 1px solid var(--pauta);
+  font-weight: 600;
+  padding: 0.45rem 0;
+}
+
+.fit {
+  color: var(--tinta-suave);
+  flex: 1;
+  font-size: 0.9rem;
+  margin: 0.75rem 0 1.25rem;
+}
+
+.plans :global(.btn) {
+  justify-content: center;
+  text-align: center;
+}
+
+.included {
+  border-top: 1px solid var(--pauta);
+  display: grid;
+  gap: 0.5rem 2rem;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+}
+
+.included h3 {
   font-size: 1rem;
-  padding: 0.7rem 1.3rem;
+  margin: 0;
+}
+
+.included ul {
+  display: grid;
+  gap: 0.4rem 2rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.included li {
+  color: var(--tinta-suave);
+  font-size: 0.9rem;
+  padding-left: 1.2rem;
+  position: relative;
+}
+
+.included li::before {
+  color: var(--verde);
+  content: "✓";
+  font-weight: 700;
+  left: 0;
+  position: absolute;
+}
+
+.fineprint {
+  color: var(--tinta-suave);
+  font-size: 0.8rem;
+  margin-top: 1.25rem;
 }
 
 .foot {
+  border-top: 1px solid var(--pauta);
   color: var(--tinta-suave);
   display: flex;
   flex-wrap: wrap;
@@ -418,7 +532,33 @@
   padding: 1.5rem;
 }
 
+.footNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.footNav a {
+  color: var(--tinta-suave);
+}
+
 @media (max-width: 60rem) {
+  .plans {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .plans > li:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .included {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .included ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .hero,
   .integrations {
     grid-template-columns: minmax(0, 1fr);
@@ -456,6 +596,16 @@
   .features > div {
     gap: 0.25rem;
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plans,
+  .included ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plans > li {
+    border-left: 0;
+    border-bottom: 1px solid var(--pauta);
   }
 
   .copy {
