@@ -28,7 +28,7 @@ describe("Portada", () => {
     ]);
   });
 
-  it("lists the plans from cheapest to largest, each leading to sign-up", () => {
+  it("lists the monthly plans from cheapest to largest, each leading to sign-up", () => {
     render(<Landing />);
 
     const plans = within(screen.getByRole("region", { name: "Planes" })).getAllByRole("listitem", { name: /^Plan / });
@@ -39,8 +39,17 @@ describe("Portada", () => {
       "Empresa",
     ]);
     for (const plan of plans) {
+      expect(within(plan).getByText((_, element) => /^\$\d+ al mes$/.test(element?.textContent ?? "") && element?.tagName === "P")).toBeInTheDocument();
       expect(within(plan).getByRole("link")).toHaveAttribute("href", "/sign-up");
     }
+  });
+
+  it("answers the usual questions before signing up", () => {
+    render(<Landing />);
+
+    const faq = screen.getByRole("region", { name: "Preguntas frecuentes" });
+    expect(within(faq).getByText("¿Necesito firma electrónica?")).toBeInTheDocument();
+    expect(within(faq).getByText("¿Puedo probar antes de pagar?")).toBeInTheDocument();
   });
 
   it("shows a sample invoice with a 49-digit access key", () => {

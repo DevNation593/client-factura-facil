@@ -1,72 +1,117 @@
 /*
  * Portada: la misma papelería que la aplicación. Una hoja del talonario con su copia amarilla
- * detrás y el sello de autorización es lo único que se mueve; el resto va pautado y quieto.
+ * detrás y el sello de autorización es lo único que se mueve; el resto va ordenado y quieto.
+ * Las secciones alternan el lienzo y la superficie blanca, y la de la API va en el azul del menú.
  */
 .page {
   overflow-x: clip;
 }
 
-.top {
-  align-items: center;
-  border-bottom: 1px solid var(--pauta);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
-  justify-content: space-between;
+/* Todas las secciones comparten el mismo ancho y los mismos márgenes laterales. */
+.wrap {
   margin: 0 auto;
   max-width: 72rem;
-  padding: 1rem 1.5rem;
+  padding: 0 1.5rem;
+}
+
+/* Encabezado fijo arriba, para tener «Crear cuenta» siempre a mano. */
+.top {
+  background: rgb(255 255 255 / 92%);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-bottom: 1px solid var(--pauta);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.topBar {
+  align-items: center;
+  display: flex;
+  gap: 1rem 2rem;
+  min-height: 4rem;
 }
 
 .brand {
-  border-left: 6px solid var(--tinta);
+  align-items: center;
   color: var(--tinta);
-  font-family: var(--serif);
-  font-size: 1.15rem;
-  font-weight: 600;
-  padding-left: 0.6rem;
+  display: inline-flex;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 650;
+  gap: 0.6rem;
   text-decoration: none;
+}
+
+.brand:hover {
+  color: var(--tinta);
+}
+
+/* Una hoja pautada en miniatura. */
+.brandMark {
+  background:
+    linear-gradient(var(--sobre-sello), var(--sobre-sello)) 0.4rem 0.55rem / 0.8rem 2px no-repeat,
+    linear-gradient(var(--sobre-sello), var(--sobre-sello)) 0.4rem 0.85rem / 0.8rem 2px no-repeat,
+    linear-gradient(var(--sobre-sello), var(--sobre-sello)) 0.4rem 1.15rem / 0.5rem 2px no-repeat,
+    var(--sello);
+  border-radius: 7px;
+  box-shadow: var(--sombra-sello);
+  display: inline-block;
+  height: 1.6rem;
+  width: 1.6rem;
 }
 
 .nav {
-  align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
+  flex: 1;
+  gap: 0.25rem 1.5rem;
+  justify-content: center;
 }
 
-.nav a:not(:global(.btn)) {
+.nav a,
+.signIn {
   color: var(--tinta-suave);
+  font-weight: 500;
   text-decoration: none;
 }
 
-.nav a:not(:global(.btn)):hover {
+.nav a:hover,
+.signIn:hover {
   color: var(--tinta);
-  text-decoration: underline;
+}
+
+.account {
+  align-items: center;
+  display: flex;
+  gap: 1.25rem;
 }
 
 /* Portada: texto a la izquierda, la hoja a la derecha. */
 .hero {
+  background:
+    radial-gradient(60rem 30rem at 85% 10%, var(--sello-tenue), transparent 70%),
+    var(--papel);
+  padding: 4.5rem 0 5rem;
+}
+
+.heroGrid {
   align-items: center;
   display: grid;
-  gap: 3rem;
+  gap: 3.5rem;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  margin: 0 auto;
-  max-width: 72rem;
-  padding: 4rem 1.5rem 4.5rem;
 }
 
 .heroText h1 {
-  font-size: clamp(2.1rem, 4.4vw, 3.25rem);
-  letter-spacing: -0.01em;
-  line-height: 1.08;
+  font-size: clamp(2.2rem, 4.4vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.06;
   max-width: 17ch;
   text-wrap: balance;
 }
 
 .heroLead {
   color: var(--tinta-suave);
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   line-height: 1.6;
   margin-top: 1.25rem;
   max-width: 34rem;
@@ -76,19 +121,51 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-top: 1.75rem;
+  margin-top: 2rem;
 }
 
 .heroActions :global(.btn) {
   font-size: 1rem;
-  padding: 0.7rem 1.3rem;
+  padding: 0.75rem 1.4rem;
 }
 
-.heroNote {
+.heroFacts {
+  display: grid;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 1.75rem 0 0;
+  padding: 0;
+}
+
+.heroFacts li,
+.included li,
+.limits li {
+  padding-left: 1.6rem;
+  position: relative;
+}
+
+/* La marca de visto: un círculo verde con su palomita. */
+.heroFacts li::before,
+.included li::before,
+.limits li::before {
+  background: var(--verde-tenue);
+  border-radius: 50%;
+  color: var(--verde);
+  content: "✓";
+  font-size: 0.7rem;
+  font-weight: 800;
+  height: 1.05rem;
+  left: 0;
+  line-height: 1.05rem;
+  position: absolute;
+  text-align: center;
+  top: 0.2rem;
+  width: 1.05rem;
+}
+
+.heroFacts li {
   color: var(--tinta-suave);
-  font-size: 0.85rem;
-  margin-top: 1rem;
-  max-width: 30rem;
+  font-size: 0.925rem;
 }
 
 /* La hoja del talonario y su copia. */
@@ -274,54 +351,86 @@
   }
 }
 
-/* Secciones pautadas. */
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    animation: none;
+  }
+}
+
+/* Secciones: el mismo ritmo vertical y el encabezado siempre alineado a la izquierda. */
 .section {
+  padding: 5rem 0;
+  /* Al saltar desde el menú, el encabezado fijo no tapa el título. */
+  scroll-margin-top: 4rem;
+}
+
+.sectionAlt {
+  background: var(--superficie);
+  border-bottom: 1px solid var(--pauta);
   border-top: 1px solid var(--pauta);
-  margin: 0 auto;
-  max-width: 72rem;
-  padding: 3.5rem 1.5rem;
+}
+
+.sectionHead {
+  margin-bottom: 2.5rem;
+  max-width: 40rem;
 }
 
 .section h2 {
-  font-size: 1.75rem;
+  font-size: clamp(1.6rem, 2.6vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
-.sectionLead {
+.sectionHead p {
   color: var(--tinta-suave);
-  margin-top: 0.5rem;
+  font-size: 1.05rem;
+  margin: 0.6rem 0 0;
 }
 
+/* El recorrido es una secuencia: cada paso lleva su número y una línea lo une con el siguiente. */
 .steps {
   counter-reset: paso;
   display: grid;
-  gap: 0;
+  gap: 1.5rem;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   list-style: none;
-  margin: 2rem 0 0;
+  margin: 0;
   padding: 0;
 }
 
 .steps li {
-  border-left: 1px solid var(--pauta);
   counter-increment: paso;
-  padding: 0 1.1rem 0.25rem;
-}
-
-.steps li:first-child {
-  border-left: 0;
-  padding-left: 0;
+  position: relative;
 }
 
 .steps li::before {
+  align-items: center;
+  background: var(--superficie);
+  border: 2px solid var(--sello);
+  border-radius: 50%;
   color: var(--sello);
   content: counter(paso);
-  display: block;
-  font-family: var(--serif);
-  font-size: 2rem;
-  font-weight: 600;
-  line-height: 1;
-  margin-bottom: 0.6rem;
+  display: flex;
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 700;
+  height: 2.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+  position: relative;
+  width: 2.5rem;
+  z-index: 1;
+}
+
+.steps li:not(:last-child)::after {
+  background: var(--pauta-fuerte);
+  content: "";
+  height: 2px;
+  left: 2.5rem;
+  position: absolute;
+  right: -1.5rem;
+  top: 1.2rem;
 }
 
 .steps h3 {
@@ -335,95 +444,147 @@
   margin-top: 0.4rem;
 }
 
+/* Lo que trae la cuenta: una cuadrícula de celdas separadas por la pauta. */
 .features {
+  background: var(--pauta);
+  border: 1px solid var(--pauta);
+  border-radius: var(--radio-panel);
   display: grid;
-  gap: 0 3rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 1.5rem 0 0;
+  gap: 1px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  overflow: hidden;
 }
 
 .features > div {
-  border-bottom: 1px solid var(--pauta);
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: 11rem minmax(0, 1fr);
-  padding: 0.9rem 0;
+  background: var(--superficie);
+  padding: 1.6rem 1.5rem;
 }
 
 .features dt {
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 650;
 }
 
 .features dd {
   color: var(--tinta-suave);
-  margin: 0;
+  margin: 0.4rem 0 0;
 }
 
+/* La API, en el azul del menú de la aplicación. */
 .integrations {
+  background: var(--riel);
+  color: var(--riel-texto);
+}
+
+.integrationsGrid {
   align-items: center;
   display: grid;
-  gap: 2.5rem;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 3.5rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+}
+
+.integrations h2 {
+  color: #fff;
 }
 
 .integrations p {
-  color: var(--tinta-suave);
+  color: var(--riel-suave);
+  font-size: 1.05rem;
+  margin-top: 0.75rem;
+}
+
+.apiPoints {
+  display: grid;
+  gap: 1.25rem;
+  margin: 2rem 0 0;
+}
+
+.apiPoints > div {
+  border-left: 2px solid var(--riel-acento);
+  padding-left: 1rem;
+}
+
+.apiPoints dt {
+  color: #fff;
+  font-weight: 650;
+}
+
+.apiPoints dd {
+  color: var(--riel-suave);
+  margin: 0.25rem 0 0;
+}
+
+.terminal {
+  background: #0a1022;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: var(--radio-panel);
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 60%);
+  margin: 0;
+  overflow: hidden;
+}
+
+.terminal figcaption {
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  color: var(--riel-suave);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.7rem 1.25rem;
 }
 
 .snippet {
-  background: var(--tinta);
-  border-left: 6px solid var(--sello);
-  color: #e8eef7;
-  font-family: Consolas, "Cascadia Mono", ui-monospace, monospace;
-  font-size: 0.82rem;
-  line-height: 1.6;
+  color: #dfe5f3;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.75;
   margin: 0;
   overflow-x: auto;
-  padding: 1.1rem 1.25rem;
+  padding: 1.25rem;
 }
 
-/* Planes: columnas pautadas como las del talonario; el recomendado lleva el filo de tinta. */
+/* El estilo general de `code` le pone a cada renglón un fondo claro que tapa el texto. */
+.snippet code {
+  background: none;
+  border-radius: 0;
+  color: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+/* Planes: cuatro columnas iguales; el recomendado se levanta sobre los demás. */
 .plans {
+  align-items: stretch;
   display: grid;
+  gap: 1rem;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   list-style: none;
-  margin: 2rem 0 0;
+  margin: 0;
   padding: 0;
 }
 
 .plans > li {
-  border-left: 1px solid var(--pauta);
-  border-top: 6px solid transparent;
+  background: var(--superficie);
+  border: 1px solid var(--pauta);
+  border-radius: var(--radio-panel);
+  box-shadow: var(--sombra-1);
   display: flex;
   flex-direction: column;
-  padding: 1.25rem 1.25rem 1.5rem;
-  position: relative;
-}
-
-.plans > li:first-child {
-  border-left: 0;
+  padding: 1.6rem 1.5rem 1.5rem;
 }
 
 .plans > li.featured {
-  background: var(--papel-hundido);
-  border-left-color: transparent;
-  border-top-color: var(--tinta);
+  border: 2px solid var(--sello);
+  box-shadow: var(--sombra-3);
+  padding: calc(1.6rem - 1px) calc(1.5rem - 1px) calc(1.5rem - 1px);
 }
 
-.plans > li.featured + li {
-  border-left-color: transparent;
-}
-
-.badge {
-  background: var(--sello);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  padding: 0.15rem 0.5rem;
-  position: absolute;
-  right: 1rem;
-  top: 1.3rem;
+.planHead {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  min-height: 1.6rem;
 }
 
 .plans h3 {
@@ -431,57 +592,70 @@
   margin: 0;
 }
 
+.badge {
+  background: var(--sello-tenue);
+  border-radius: 999px;
+  color: var(--sello);
+  font-size: 0.75rem;
+  font-weight: 650;
+  padding: 0.2rem 0.6rem;
+}
+
 .price {
   color: var(--tinta-suave);
-  margin-top: 0.6rem;
+  margin: 1rem 0 0;
 }
 
 .price strong {
   color: var(--tinta);
-  font-family: var(--serif);
-  font-size: 2.25rem;
+  font-family: var(--display);
+  font-size: 2.6rem;
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   line-height: 1;
+  margin-right: 0.15rem;
 }
 
-.monthly {
+.yearly {
   color: var(--tinta-suave);
-  font-size: 0.82rem;
-  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  margin: 0.35rem 0 0;
 }
 
 .limits {
-  border-top: 2px solid var(--tinta);
+  border-top: 1px solid var(--pauta);
+  display: grid;
+  gap: 0.5rem;
   list-style: none;
-  margin: 1rem 0 0;
-  padding: 0;
+  margin: 1.25rem 0 0;
+  padding: 1.25rem 0 0;
 }
 
 .limits li {
-  border-bottom: 1px solid var(--pauta);
   font-weight: 600;
-  padding: 0.45rem 0;
 }
 
 .fit {
   color: var(--tinta-suave);
   flex: 1;
   font-size: 0.9rem;
-  margin: 0.75rem 0 1.25rem;
+  margin: 1rem 0 1.5rem;
 }
 
 .plans :global(.btn) {
-  justify-content: center;
-  text-align: center;
+  width: 100%;
 }
 
 .included {
-  border-top: 1px solid var(--pauta);
+  align-items: start;
+  border: 1px solid var(--pauta);
+  border-radius: var(--radio-panel);
   display: grid;
-  gap: 0.5rem 2rem;
+  gap: 0.75rem 2rem;
   grid-template-columns: 11rem minmax(0, 1fr);
   margin-top: 1.5rem;
-  padding-top: 1.25rem;
+  padding: 1.25rem 1.5rem;
 }
 
 .included h3 {
@@ -491,7 +665,7 @@
 
 .included ul {
   display: grid;
-  gap: 0.4rem 2rem;
+  gap: 0.5rem 2rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   list-style: none;
   margin: 0;
@@ -501,54 +675,155 @@
 .included li {
   color: var(--tinta-suave);
   font-size: 0.9rem;
-  padding-left: 1.2rem;
-  position: relative;
-}
-
-.included li::before {
-  color: var(--verde);
-  content: "✓";
-  font-weight: 700;
-  left: 0;
-  position: absolute;
 }
 
 .fineprint {
   color: var(--tinta-suave);
-  font-size: 0.8rem;
+  font-size: 0.825rem;
   margin-top: 1.25rem;
+  max-width: none;
+}
+
+/* Preguntas: el encabezado a la izquierda y las respuestas, plegadas, a la derecha. */
+.faqGrid {
+  display: grid;
+  gap: 2rem 4rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+}
+
+.faq {
+  border-top: 1px solid var(--pauta);
+}
+
+.faq details {
+  border-bottom: 1px solid var(--pauta);
+}
+
+.faq summary {
+  cursor: pointer;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 650;
+  list-style: none;
+  padding: 1.1rem 2rem 1.1rem 0;
+  position: relative;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary::after {
+  color: var(--tinta-suave);
+  content: "+";
+  font-size: 1.4rem;
+  font-weight: 400;
+  line-height: 1;
+  position: absolute;
+  right: 0.25rem;
+  top: 1.05rem;
+}
+
+.faq details[open] summary::after {
+  content: "−";
+}
+
+.faq details p {
+  color: var(--tinta-suave);
+  margin: -0.25rem 0 1.25rem;
 }
 
 .foot {
-  border-top: 1px solid var(--pauta);
+  background: var(--papel);
   color: var(--tinta-suave);
+  font-size: 0.9rem;
+  padding: 2.5rem 0;
+}
+
+.footGrid {
+  align-items: start;
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.85rem;
-  gap: 0.5rem 1.5rem;
+  gap: 1.5rem 3rem;
   justify-content: space-between;
-  margin: 0 auto;
-  max-width: 72rem;
-  padding: 1.5rem;
+}
+
+.footGrid p {
+  margin: 0.6rem 0 0;
 }
 
 .footNav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
+  gap: 0.5rem 1.5rem;
 }
 
 .footNav a {
   color: var(--tinta-suave);
+  text-decoration: none;
 }
 
-@media (max-width: 60rem) {
+.footNav a:hover {
+  color: var(--tinta);
+  text-decoration: underline;
+}
+
+@media (max-width: 64rem) {
+  .nav {
+    display: none;
+  }
+
+  .account {
+    margin-left: auto;
+  }
+
   .plans {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .plans > li:nth-child(odd) {
-    border-left: 0;
+@media (max-width: 60rem) {
+  .heroGrid,
+  .integrationsGrid,
+  .faqGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero {
+    padding-top: 3rem;
+  }
+
+  /* El recorrido pasa a vertical: la línea baja de un número al siguiente. */
+  .steps {
+    gap: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .steps li {
+    padding: 0 0 1.75rem 3.5rem;
+  }
+
+  .steps li::before {
+    left: 0;
+    position: absolute;
+    top: 0;
+  }
+
+  .steps li:not(:last-child)::after {
+    bottom: 0;
+    height: auto;
+    left: 1.2rem;
+    right: auto;
+    top: 2.5rem;
+    width: 2px;
+  }
+
+  .steps h3 {
+    padding-top: 0.5rem;
+  }
+
+  .features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .included {
@@ -558,54 +833,35 @@
   .included ul {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .hero,
-  .integrations {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .hero {
-    padding-top: 2.5rem;
-  }
-
-  .steps {
-    gap: 1.5rem;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .steps li,
-  .steps li:first-child {
-    border-left: 2px solid var(--pauta);
-    padding: 0 0 0 1rem;
-  }
-
-  .features {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 36rem) {
-  .top,
-  .hero,
-  .section,
-  .foot {
-    padding-left: 1rem;
-    padding-right: 1rem;
+  .wrap {
+    padding: 0 1rem;
   }
 
-  .features > div {
-    gap: 0.25rem;
-    grid-template-columns: minmax(0, 1fr);
+  .signIn {
+    display: none;
   }
 
+  .brand {
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+
+  .account :global(.btn) {
+    padding: 0.45rem 0.8rem;
+    white-space: nowrap;
+  }
+
+  .section {
+    padding: 3.5rem 0;
+  }
+
+  .features,
   .plans,
   .included ul {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .plans > li {
-    border-left: 0;
-    border-bottom: 1px solid var(--pauta);
   }
 
   .copy {
