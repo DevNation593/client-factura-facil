@@ -7,9 +7,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api, unwrap } from "@/api/client";
 import { ApiError } from "@/api/problem";
 import type { components } from "@/api/schema";
+import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
+import { Skeleton } from "@/components/Skeleton";
 import { StateStamp } from "@/components/StateBadge";
 import { formatInstant, formatIssueDate } from "@/lib/dates";
 import { formatUnitPrice, plainDecimal } from "@/lib/decimal";
@@ -94,7 +96,7 @@ export default function DocumentoPage() {
     );
   }
   if (!document.data) {
-    return document.error ? <ErrorNotice error={document.error} /> : <p>Cargando…</p>;
+    return document.error ? <ErrorNotice error={document.error} /> : <Skeleton lines={8} />;
   }
 
   const invoice = document.data;
@@ -426,7 +428,7 @@ function RetryAction({ id, onDone }: { id: string; onDone: () => void }) {
 
 function Attempts({ attempts }: { attempts: SriAttempt[] }) {
   if (attempts.length === 0) {
-    return <p className="empty">Todavía no se ha hecho ninguna llamada al SRI por este comprobante.</p>;
+    return <EmptyState icon="send">Todavía no se ha hecho ninguna llamada al SRI por este comprobante.</EmptyState>;
   }
   return (
     <div className="table-scroll">
@@ -470,7 +472,7 @@ function Attempts({ attempts }: { attempts: SriAttempt[] }) {
 
 function Deliveries({ deliveries }: { deliveries: Delivery[] }) {
   if (deliveries.length === 0) {
-    return <p className="empty">Este comprobante no se ha enviado por correo.</p>;
+    return <EmptyState icon="send">Este comprobante no se ha enviado por correo.</EmptyState>;
   }
   return (
     <div className="table-scroll">

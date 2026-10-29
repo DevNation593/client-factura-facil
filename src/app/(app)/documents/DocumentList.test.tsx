@@ -95,7 +95,11 @@ describe("Listado de un tipo de comprobante", () => {
     expect(within(tabs).getByRole("link", { name: "Emitidas" })).toHaveAttribute("aria-current", "page");
     expect(await screen.findByRole("heading", { name: "Facturas" })).toBeInTheDocument();
     expect(await screen.findByText("Aún no se ha emitido ninguna factura.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Nueva factura" })).toHaveAttribute("href", "/documents/invoices/new");
+    // La pestaña y, en la lista vacía, la invitación a emitir la primera.
+    expect(screen.getAllByRole("link", { name: "Nueva factura" }).map((link) => link.getAttribute("href"))).toEqual([
+      "/documents/invoices/new",
+      "/documents/invoices/new",
+    ]);
     unmount();
 
     renderWithTenant(<DocumentList type="01" />, { role: "AUDITOR" });
@@ -109,12 +113,16 @@ describe("Listado de un tipo de comprobante", () => {
     stubApi({ "GET /documents": () => page([]) });
     const { unmount } = renderWithTenant(<DocumentList type="04" />);
     expect(await screen.findByText("Aún no se ha emitido ninguna nota de crédito.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Nueva nota de crédito" })).toHaveAttribute("href", "/documents/credit-notes/new");
+    for (const link of screen.getAllByRole("link", { name: "Nueva nota de crédito" })) {
+      expect(link).toHaveAttribute("href", "/documents/credit-notes/new");
+    }
     unmount();
 
     renderWithTenant(<DocumentList type="05" />);
     expect(await screen.findByText("Aún no se ha emitido ninguna nota de débito.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Nueva nota de débito" })).toHaveAttribute("href", "/documents/debit-notes/new");
+    for (const link of screen.getAllByRole("link", { name: "Nueva nota de débito" })) {
+      expect(link).toHaveAttribute("href", "/documents/debit-notes/new");
+    }
   });
 
   it.each([

@@ -5,10 +5,12 @@ import { useState, type FormEvent } from "react";
 
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema";
+import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { NoTenant } from "@/components/NoTenant";
 import { ErrorNotice, Notice } from "@/components/Notice";
 import { SecretNotice } from "@/components/SecretNotice";
+import { Skeleton } from "@/components/Skeleton";
 import { formatInstant } from "@/lib/dates";
 import { canWrite, useTenant } from "@/lib/tenantContext";
 import { useApi } from "@/lib/useApi";
@@ -186,8 +188,8 @@ function Integrations() {
       <ApiKeys />
 
       <h2 id="direcciones">Direcciones registradas</h2>
-      {subscriptions.loading ? <p>Cargando…</p> : null}
-      {subscriptions.data?.length === 0 ? <p className="empty">Todavía no hay direcciones registradas.</p> : null}
+      {subscriptions.loading ? <Skeleton lines={3} /> : null}
+      {subscriptions.data?.length === 0 ? <EmptyState icon="plug">Todavía no hay direcciones registradas.</EmptyState> : null}
       {subscriptions.data && subscriptions.data.length > 0 ? (
         <div className="table-scroll">
           <table className="ruled" aria-labelledby="direcciones">
@@ -423,8 +425,8 @@ function History({ subscription }: { subscription: Subscription }) {
       </h2>
       <ErrorNotice error={deliveries.error} />
       <ErrorNotice error={error} />
-      {deliveries.loading ? <p>Cargando…</p> : null}
-      {deliveries.data?.items.length === 0 ? <p className="empty">Todavía no se le ha enviado ningún aviso.</p> : null}
+      {deliveries.loading ? <Skeleton lines={3} /> : null}
+      {deliveries.data?.items.length === 0 ? <EmptyState icon="send">Todavía no se le ha enviado ningún aviso.</EmptyState> : null}
       {deliveries.data && deliveries.data.items.length > 0 ? (
         <>
           <div className="table-scroll">

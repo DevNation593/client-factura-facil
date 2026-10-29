@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTenant } from "@/lib/tenantContext";
 
 import { ErrorNotice, Notice } from "./Notice";
+import { Skeleton } from "./Skeleton";
 
 /**
  * Lo que se muestra en una pantalla que necesita una empresa activa cuando no la hay. Distingue por
@@ -13,7 +14,7 @@ import { ErrorNotice, Notice } from "./Notice";
 export function NoTenant() {
   const { loading, error } = useTenant();
   if (loading) {
-    return <p>Cargando…</p>;
+    return <Skeleton lines={4} />;
   }
   if (error !== undefined && error !== null) {
     return <ErrorNotice error={error} />;

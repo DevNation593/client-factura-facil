@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { api, unwrap } from "@/api/client";
 import { Field } from "@/components/Field";
 import { ErrorNotice, Notice } from "@/components/Notice";
+import { Skeleton } from "@/components/Skeleton";
 import { ROLE_LABELS } from "@/lib/roles";
 import { useTenant } from "@/lib/tenantContext";
 
@@ -50,7 +51,7 @@ export default function EmpresasPage() {
         <h1>Empresas</h1>
       </div>
       <ErrorNotice error={error} />
-      {loading ? <p>Cargando…</p> : null}
+      {loading ? <Skeleton lines={3} /> : null}
       {!loading && tenants.length === 0 && !error ? (
         <Notice>Todavía no pertenece a ninguna empresa. Cree la suya para empezar a facturar.</Notice>
       ) : null}

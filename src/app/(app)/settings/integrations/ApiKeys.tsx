@@ -4,9 +4,11 @@ import { useState, type FormEvent } from "react";
 
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema";
+import { EmptyState } from "@/components/EmptyState";
 import { Field } from "@/components/Field";
 import { ErrorNotice } from "@/components/Notice";
 import { SecretNotice } from "@/components/SecretNotice";
+import { Skeleton } from "@/components/Skeleton";
 import { formatInstant } from "@/lib/dates";
 import { useApi } from "@/lib/useApi";
 
@@ -79,8 +81,8 @@ export function ApiKeys() {
         </SecretNotice>
       ) : null}
 
-      {keys.loading ? <p>Cargando…</p> : null}
-      {keys.data?.length === 0 ? <p className="empty">Todavía no hay API keys.</p> : null}
+      {keys.loading ? <Skeleton lines={3} /> : null}
+      {keys.data?.length === 0 ? <EmptyState icon="key">Todavía no hay API keys.</EmptyState> : null}
       {keys.data && keys.data.length > 0 ? (
         <div className="table-scroll">
           <table className="ruled" aria-labelledby="api-keys">
