@@ -52,7 +52,8 @@ export function DocumentList({ type, summary = false }: { type: DocumentTypeCode
       <SubmoduleTabs type={type} />
       {section.issue ? null : <Notice>La plataforma todavía no emite {section.title.toLowerCase()}.</Notice>}
       <ErrorNotice error={documents.error} />
-      {summary ? <DocumentSummary type={type} /> : null}
+      {/* Si falla la lista, su aviso ya lo dice: el resumen no repite otro igual. */}
+      {summary && !documents.error ? <DocumentSummary type={type} /> : null}
       {documents.loading && !documents.data ? <Skeleton lines={6} /> : null}
       {documents.data && documents.data.items.length === 0 ? (
         <EmptyState
