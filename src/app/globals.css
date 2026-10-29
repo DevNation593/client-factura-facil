@@ -1031,6 +1031,19 @@ input[type="radio"] {
   margin: 0;
 }
 
+/* El resumen no se pudo consultar: el aviso y el botón para reintentarlo, en su sitio. */
+.summary-failed {
+  margin: 0 0 1.25rem;
+}
+
+.summary-section .summary-failed {
+  margin: 0;
+}
+
+.summary-failed .notice {
+  margin: 0 0 0.5rem;
+}
+
 .summary-tile {
   background: var(--superficie);
   border: 1px solid var(--pauta);

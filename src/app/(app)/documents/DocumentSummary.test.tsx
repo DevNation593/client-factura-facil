@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { json, stubApi } from "@/test/api";
@@ -53,5 +54,25 @@ describe("Resumen de las facturas", () => {
 
     await waitFor(() => expect(api.to("GET", "/documents")).toHaveLength(1));
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
+  });
+
+  it("says when it could not be loaded, instead of looking like there are no invoices, and lets you retry", async () => {
+    let calls = 0;
+    const api = stubApi({
+      "GET /documents": () =>
+        ++calls === 1
+          ? json(503, { type: "about:blank", title: "Servicio no disponible", status: 503 })
+          : json(200, { items: [document(1, "AUTHORIZED", "10.00")], page: 0, size: SUMMARY_SIZE, total: 1 }),
+    });
+    renderWithTenant(<DocumentSummary type="01" />);
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Reintentar el resumen" }));
+
+    expect(await screen.findByRole("region", { name: "Resumen de facturas" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(api.to("GET", "/documents")).toHaveLength(2);
   });
 });

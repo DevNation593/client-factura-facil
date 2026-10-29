@@ -56,34 +56,36 @@ export default function EmpresasPage() {
         <Notice>Todavía no pertenece a ninguna empresa. Cree la suya para empezar a facturar.</Notice>
       ) : null}
       {tenants.length > 0 ? (
-        <table className="ruled">
-          <thead>
-            <tr>
-              <th scope="col">Empresa</th>
-              <th scope="col">Su rol</th>
-              <th scope="col">
-                <span className="sr-only">Acción</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {tenants.map((tenant) => (
-              <tr key={tenant.id}>
-                <td>{tenant.name}</td>
-                <td>{ROLE_LABELS[tenant.role] ?? tenant.role}</td>
-                <td>
-                  {active?.id === tenant.id ? (
-                    <span>En uso</span>
-                  ) : (
-                    <button type="button" className="btn-link" onClick={() => use(tenant.id)}>
-                      Usar {tenant.name}
-                    </button>
-                  )}
-                </td>
+        <div className="table-scroll">
+          <table className="ruled">
+            <thead>
+              <tr>
+                <th scope="col">Empresa</th>
+                <th scope="col">Su rol</th>
+                <th scope="col">
+                  <span className="sr-only">Acción</span>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {tenants.map((tenant) => (
+                <tr key={tenant.id}>
+                  <td>{tenant.name}</td>
+                  <td>{ROLE_LABELS[tenant.role] ?? tenant.role}</td>
+                  <td>
+                    {active?.id === tenant.id ? (
+                      <span>En uso</span>
+                    ) : (
+                      <button type="button" className="btn-link" onClick={() => use(tenant.id)}>
+                        Usar {tenant.name}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
 
       <h2>Crear una empresa</h2>

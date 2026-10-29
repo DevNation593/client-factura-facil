@@ -2,6 +2,7 @@
 
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema";
+import { ErrorNotice } from "@/components/Notice";
 import { documentSubmodule } from "@/lib/documentTypes";
 import { summarize, TONE_ORDER } from "@/lib/documentSummary";
 import { useTenant } from "@/lib/tenantContext";
@@ -48,7 +49,9 @@ function MixBar({ byTone, count }: { byTone: Record<(typeof TONE_ORDER)[number],
 /**
  * Resumen de un tipo de comprobante sobre su lista: cuántos autorizó el SRI, cuántos siguen en camino,
  * cuántos piden atención y cuánto suman los autorizados, con una barra de la mezcla de estados. Se
- * calcula con los últimos comprobantes y lo dice. Nada mientras carga o si aún no hay ninguno.
+ * calcula con los últimos comprobantes y lo dice. Nada mientras carga o si aún no hay ninguno. Si su
+ * consulta falla, lo dice y deja reintentarla: un fallo no se confunde con no tener comprobantes, ni
+ * unas cifras viejas con las de ahora.
  */
 export function DocumentSummary({ type }: { type: DocumentTypeCode }) {
   const { active } = useTenant();
@@ -58,15 +61,30 @@ export function DocumentSummary({ type }: { type: DocumentTypeCode }) {
     [active?.id, type],
   );
   const summary = recent.data ? summarize(recent.data.items, recent.data.total) : undefined;
-  usePolling(() => void recent.reload({ quiet: true }), (summary?.byTone.progress ?? 0) > 0);
+  const failed = recent.error !== undefined && recent.error !== null;
+  usePolling(() => void recent.reload({ quiet: true }), !failed && (summary?.byTone.progress ?? 0) > 0);
 
-  if (!summary || summary.count === 0) {
-    return null;
-  }
   const noun = section.title.toLowerCase();
+  const failure = failed ? (
+    <div className="summary-failed">
+      <ErrorNotice error={recent.error} />
+      <p className="actions">
+        <button type="button" className="btn" onClick={() => void recent.reload()} disabled={recent.loading}>
+          Reintentar el resumen
+        </button>
+        {summary && summary.count > 0 ? (
+          <span className="field-hint">Las cifras de abajo son de la última vez que se pudieron consultar.</span>
+        ) : null}
+      </p>
+    </div>
+  ) : null;
+  if (!summary || summary.count === 0) {
+    return failure;
+  }
   const attention = summary.byTone.warning + summary.byTone.danger;
   return (
     <section className="summary-section" aria-label={`Resumen de ${noun}`}>
+      {failure}
       <dl className="summary">
         {TILES.map((tile) => (
           <div key={tile.tone} className="summary-tile">
