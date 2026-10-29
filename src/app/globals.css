@@ -692,7 +692,6 @@ input[type="radio"] {
   font-weight: 600;
   padding: 0.6rem 0.9rem;
   text-align: left;
-  white-space: nowrap;
 }
 
 .ruled td {
