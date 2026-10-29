@@ -44,9 +44,13 @@ function Rail({ userName }: { userName: string | null }) {
   const { active, tenants, loading } = useTenant();
   const pathname = usePathname();
   const [leaving, setLeaving] = useState(false);
-  /** En el teléfono, la dirección en la que se abrió el menú: al ir a otra pantalla queda cerrado. */
-  const [openAt, setOpenAt] = useState<string | null>(null);
-  const open = openAt === pathname;
+  /** En el teléfono, si el menú está abierto. Al ir a otra pantalla se cierra, y no vuelve a abrirse solo al regresar. */
+  const [open, setOpen] = useState(false);
+  const [shownAt, setShownAt] = useState(pathname);
+  if (shownAt !== pathname) {
+    setShownAt(pathname);
+    setOpen(false);
+  }
 
   /**
    * Cierra la sesión (en la API y en las cookies) y después vuelve a la pantalla de ingreso con una
@@ -99,7 +103,7 @@ function Rail({ userName }: { userName: string | null }) {
           className="rail-toggle"
           aria-expanded={open}
           aria-controls="menu-principal"
-          onClick={() => setOpenAt(open ? null : pathname)}
+          onClick={() => setOpen(!open)}
         >
           <Icon name={open ? "close" : "menu"} />
           Menú

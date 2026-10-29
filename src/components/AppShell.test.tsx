@@ -102,11 +102,13 @@ describe("AppShell", () => {
   it("opens the menu on a phone with its button and closes it on reaching another screen", async () => {
     route.pathname = "/documents/invoices";
     stubApi({ "GET /tenants": () => json(200, [TENANT]) });
-    const { rerender } = render(
+    // Un elemento nuevo en cada render: con el mismo, React no vuelve a pintar el marco.
+    const shell = () => (
       <AppShell userName="Ana Pérez">
         <p>contenido</p>
-      </AppShell>,
+      </AppShell>
     );
+    const { rerender } = render(shell());
     await screen.findByText("Comercial Andina");
     const toggle = screen.getByRole("button", { name: "Menú" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
@@ -116,11 +118,12 @@ describe("AppShell", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "true");
 
     route.pathname = "/catalogs/products";
-    rerender(
-      <AppShell userName="Ana Pérez">
-        <p>contenido</p>
-      </AppShell>,
-    );
+    rerender(shell());
+    expect(screen.getByRole("button", { name: "Menú" })).toHaveAttribute("aria-expanded", "false");
+
+    // Volver a la pantalla donde se abrió (con Atrás, por ejemplo) no lo abre otra vez.
+    route.pathname = "/documents/invoices";
+    rerender(shell());
     expect(screen.getByRole("button", { name: "Menú" })).toHaveAttribute("aria-expanded", "false");
   });
 
