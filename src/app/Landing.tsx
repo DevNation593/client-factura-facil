@@ -132,10 +132,10 @@ function SampleInvoice() {
   );
 }
 
-/** Portada pública: qué hace la aplicación y por dónde se entra. */
+/** Portada pública: qué hace la aplicación y por dónde se entra. Siempre en claro: su factura es de papel. */
 export function Landing() {
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} tema-claro`}>
       <header className={styles.top}>
         <Link href="/" className={styles.brand}>
           Facturación electrónica
