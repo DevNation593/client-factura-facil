@@ -26,8 +26,11 @@ describe("Submódulos de comprobantes", () => {
       renderWithTenant(<Page />);
 
       expect(await screen.findByRole("heading", { name: title })).toBeInTheDocument();
-      await waitFor(() => expect(api.to("GET", "/documents")).toHaveLength(1));
-      expect(api.to("GET", "/documents")[0]?.query.get("documentType")).toBe(code);
+      // Las facturas piden además las últimas para su resumen.
+      await waitFor(() => expect(api.to("GET", "/documents")).toHaveLength(code === "01" ? 2 : 1));
+      for (const call of api.to("GET", "/documents")) {
+        expect(call.query.get("documentType")).toBe(code);
+      }
     },
   );
 

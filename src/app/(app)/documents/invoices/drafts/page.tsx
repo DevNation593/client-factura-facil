@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { EmptyState } from "@/components/EmptyState";
 import { NoTenant } from "@/components/NoTenant";
 import { Notice } from "@/components/Notice";
 import { SubmoduleTabs } from "@/components/SubmoduleTabs";
@@ -38,7 +39,7 @@ function DraftList({ tenantId }: { tenantId: string }) {
         Los borradores se guardan solo en este navegador. No se ven desde otro equipo y se pierden si borra los datos de navegación.
       </Notice>
       {drafts.length === 0 ? (
-        <p className="empty">No hay borradores.</p>
+        <EmptyState icon="draft">No hay borradores.</EmptyState>
       ) : (
         <table className="ruled">
           <thead>
