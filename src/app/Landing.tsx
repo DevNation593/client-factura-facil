@@ -55,6 +55,59 @@ const FEATURES = [
   },
 ];
 
+/** Precios anuales sin IVA. Los planes solo cambian el volumen en producción y las empresas; las funciones son las mismas. */
+const PLANS = [
+  {
+    name: "Gratis",
+    price: "$0",
+    period: "siempre",
+    quota: "30 comprobantes al año",
+    companies: "1 empresa",
+    fit: "Para facturar de vez en cuando o probar con un cliente real.",
+    cta: "Empezar gratis",
+  },
+  {
+    name: "Emprendedor",
+    price: "$29",
+    period: "al año",
+    monthly: "Unos $2,42 al mes",
+    quota: "400 comprobantes al año",
+    companies: "1 empresa",
+    fit: "Profesionales y negocios pequeños que facturan cada semana.",
+    cta: "Elegir Emprendedor",
+  },
+  {
+    name: "Pyme",
+    price: "$59",
+    period: "al año",
+    monthly: "Unos $4,92 al mes",
+    quota: "1.500 comprobantes al año",
+    companies: "Hasta 3 empresas",
+    fit: "Ventas diarias, o un punto de venta que emite por la API.",
+    cta: "Elegir Pyme",
+    featured: true,
+  },
+  {
+    name: "Empresa",
+    price: "$119",
+    period: "al año",
+    monthly: "Unos $9,92 al mes",
+    quota: "6.000 comprobantes al año",
+    companies: "Hasta 10 empresas",
+    fit: "Estudios contables y sistemas con volumen alto.",
+    cta: "Elegir Empresa",
+  },
+];
+
+const INCLUDED = [
+  "Facturas y notas de crédito y débito",
+  "Envío al SRI con reintentos",
+  "XML y RIDE por correo a su cliente",
+  "Archivo de todo lo autorizado",
+  "API con idempotencia y webhooks",
+  "Ambiente de pruebas sin límite",
+];
+
 function SampleInvoice() {
   return (
     <figure className={styles.sheet} aria-label="Factura de muestra autorizada por el SRI">
@@ -143,6 +196,7 @@ export function Landing() {
         <nav className={styles.nav} aria-label="Portada">
           <a href="#recorrido">Cómo funciona</a>
           <a href="#integraciones">Para sus sistemas</a>
+          <a href="#planes">Planes</a>
           <Link href="/sign-in">Ingresar</Link>
           <Link href="/sign-up" className="btn btn-primary">
             Crear cuenta
@@ -225,20 +279,54 @@ export function Landing() {
           </pre>
         </section>
 
-        <section className={styles.closing} aria-labelledby="empezar-titulo">
-          <h2 id="empezar-titulo">Emita su primera factura de prueba hoy</h2>
-          <p>Cree su cuenta, registre su empresa y suba su firma electrónica.</p>
-          <Link href="/sign-up" className="btn btn-primary">
-            Crear cuenta
-          </Link>
+        <section id="planes" className={styles.section} aria-labelledby="planes-titulo">
+          <h2 id="planes-titulo">Planes</h2>
+          <p className={styles.sectionLead}>
+            Todos traen la aplicación completa. Cambia cuántos comprobantes autoriza el SRI al año y cuántas empresas
+            lleva.
+          </p>
+          <ul className={styles.plans}>
+            {PLANS.map((plan) => (
+              <li key={plan.name} className={plan.featured ? styles.featured : undefined} aria-label={`Plan ${plan.name}`}>
+                {plan.featured && <span className={styles.badge}>Recomendado</span>}
+                <h3>{plan.name}</h3>
+                <p className={styles.price}>
+                  <strong>{plan.price}</strong> {plan.period}
+                </p>
+                <p className={styles.monthly}>{plan.monthly ?? "Sin tarjeta"}</p>
+                <ul className={styles.limits}>
+                  <li>{plan.quota}</li>
+                  <li>{plan.companies}</li>
+                </ul>
+                <p className={styles.fit}>{plan.fit}</p>
+                <Link href="/sign-up" className={plan.featured ? "btn btn-primary" : "btn"}>
+                  {plan.cta}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className={styles.included}>
+            <h3>En todos los planes</h3>
+            <ul>
+              {INCLUDED.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <p className={styles.fineprint}>
+            Precios en dólares, más IVA. Los comprobantes de prueba no cuentan. La firma electrónica (.p12) se compra
+            aparte a una entidad de certificación.
+          </p>
         </section>
       </main>
 
       <footer className={styles.foot}>
         <span>Facturación electrónica para el SRI de Ecuador.</span>
-        <span>
-          ¿Ya tiene cuenta? <Link href="/sign-in">Ingresar</Link>
-        </span>
+        <nav className={styles.footNav} aria-label="Pie de página">
+          <a href="#recorrido">Cómo funciona</a>
+          <a href="#integraciones">Para sus sistemas</a>
+          <a href="#planes">Planes</a>
+        </nav>
       </footer>
     </div>
   );

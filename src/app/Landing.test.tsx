@@ -28,6 +28,21 @@ describe("Portada", () => {
     ]);
   });
 
+  it("lists the plans from cheapest to largest, each leading to sign-up", () => {
+    render(<Landing />);
+
+    const plans = within(screen.getByRole("region", { name: "Planes" })).getAllByRole("listitem", { name: /^Plan / });
+    expect(plans.map((plan) => within(plan).getByRole("heading").textContent)).toEqual([
+      "Gratis",
+      "Emprendedor",
+      "Pyme",
+      "Empresa",
+    ]);
+    for (const plan of plans) {
+      expect(within(plan).getByRole("link")).toHaveAttribute("href", "/sign-up");
+    }
+  });
+
   it("shows a sample invoice with a 49-digit access key", () => {
     render(<Landing />);
 
